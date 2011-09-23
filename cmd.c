@@ -108,7 +108,7 @@ void cmd_dispatch(int argc, char **argv)
 				cmd_done();
 			return;
 		}
-	}
+        }
         cmd_sendresponse(put_error(501,"Not implemented"), 501);
 	cmd_done();
 }
@@ -125,14 +125,13 @@ static int cmd_help(int argc, char **argv)
         json_t *result = json_array();
         json_object_set_new(help, "commands", result);
 
-        for(i = 0; i < sizeof(commands) / sizeof(commands[0]); i++){
-               json_t *obj = json_pack("{s:s, s:s, s:s}",
-                                       commands[i].name,commands[i].help,
-                                       "usage", commands[i].usage,
-                                       "notes", commands[i].notes);
-               json_array_append(result, obj);
+        for(i = 0; i < sizeof(commands) / sizeof(commands[0]); i++)
+            json_array_append_new(result, json_pack("{s:s, s:s, s:s}",
+                                                       commands[i].name,commands[i].help,
+                                                       "usage", commands[i].usage,
+                                                       "notes", commands[i].notes));
 
-        }
         cmd_sendresponse(json, 200);
-	return -1;
+        json_decref(json);
+        return -1;
 }

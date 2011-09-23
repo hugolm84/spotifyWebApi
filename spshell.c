@@ -24,7 +24,7 @@
 #include <string.h>
 
 #include "spshell.h"
-
+#include <pthread.h>
 sp_session *g_session;
 void (*metadata_updated_fn)(void);
 int is_logged_out;
@@ -57,6 +57,7 @@ static void logged_in(sp_session *session, sp_error error)
         cc = sp_session_user_country(session);
 
         fprintf(stderr, "Logged in to Spotify as user %s (registered in country: %c%c)\n", my_name, cc >> 8, cc & 0xff);
+
 
         start_recv();
 }

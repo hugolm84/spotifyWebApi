@@ -35,7 +35,7 @@ static void get_search(sp_search *search)
         json_t *tracks = json_array();
         json_object_set_new(json, "tracks", tracks);
         for (i = 0; i < sp_search_num_tracks(search); ++i){
-            json_array_append(tracks, get_track(sp_search_track(search, i)));
+            json_array_append_new(tracks, get_track(sp_search_track(search, i)));
         }
         json_object_set_new_nocheck(json, "query", json_string_nocheck(sp_search_query(search)));
         cmd_sendresponse(json, 200);

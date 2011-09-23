@@ -39,7 +39,7 @@
  *	If you are getting truncated responses, increase this
  */
  
-#define BUF_SIZE 4096 
+#define BUF_SIZE 512
 #define PORT 5112
 #define USERNAME ""
 #define PASSWORD ""

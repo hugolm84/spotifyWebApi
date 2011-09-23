@@ -86,7 +86,7 @@ static void browse_album_callback(sp_albumbrowse *browse, void *userdata)
             json_object_set_new(album, "result", result);
 
             for (i = 0; i < sp_albumbrowse_num_tracks(browse); ++i)
-                json_array_append(result, get_track(sp_albumbrowse_track(browse, i)));
+                json_array_append_new(result, get_track(sp_albumbrowse_track(browse, i)));
 
             json_object_set_new(album, "artist",
                                 json_string_nocheck(sp_artist_name(sp_album_artist(sp_albumbrowse_album(browse)))));
@@ -123,7 +123,7 @@ static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
             json_object_set_new(artist, "result", result);
 
             for (i = 0; i < sp_artistbrowse_num_tracks(browse); ++i)
-                json_array_append(result, get_track(sp_artistbrowse_track(browse, i)));
+                json_array_append_new(result, get_track(sp_artistbrowse_track(browse, i)));
 
             json_object_set_new(artist, "name",
                                 json_string_nocheck(sp_artist_name(sp_artistbrowse_artist(browse))));
@@ -165,7 +165,7 @@ static void track_browse_try(void)
             json_object_set_new(json, "track", track);
             json_t *result = json_array();
             json_object_set_new(track, "result", result);
-            json_array_append(result, get_track(track_browse));
+            json_array_append_new(result, get_track(track_browse));
 
             cmd_sendresponse(json, 200);
         }
@@ -205,7 +205,7 @@ static void playlist_browse_try(void)
 
 
         for(i = 0; i < tracks; i++)
-            json_array_append(result, get_track(sp_playlist_track(playlist_browse, i)));
+            json_array_append_new(result, get_track(sp_playlist_track(playlist_browse, i)));
 
 
         json_object_set_new(playlist, "name",

@@ -144,9 +144,9 @@ static void *socketreciver(void *aux)
  */
 void start_recv(void)
 {
-	static pthread_t id;
-	if (id)
-		return;
+        static pthread_t id;
+        if (id)
+                return;
         wait_for_cmd = 1;
         pthread_create(&id, NULL, socketreciver, NULL);
 }
@@ -220,7 +220,7 @@ int main(int argc, char **argv)
 
 	pthread_mutex_lock(&notify_mutex);
 
-	while(!is_logged_out) {
+        while(!is_logged_out) {
                 /// Release prompt
 
 
