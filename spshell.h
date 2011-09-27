@@ -39,18 +39,19 @@
  *	If you are getting truncated responses, increase this
  */
  
-#define BUF_SIZE 512
+#define BUF_SIZE 4096
 #define PORT 5112
 #define USERNAME ""
 #define PASSWORD ""
 #define STATUS_OK "HTTP/1.0 200 OK\n"
 #define STATUS_ERR "HTTP/1.0 400 BAD REQUEST\n"
+#define STATUS_CONTERR "HTTP/1.0 404 NOT FOUND\n"
 #define STATUS_NIMPL "HTTP/1.0 501 NOT IMPLEMENTED\n"
 #define STATUS_CONNERR "HTTP/1.0 503 SERVICE UNAVAILABLE\n"
 #define JSON "Content-type: application/json; charset=UTF-8\n\n";
 
 
-int sockfd, new_fd, newfd, numbytes;
+int newfd, numbytes;
 extern sp_session *g_session;
 
 extern void (*metadata_updated_fn)(void);

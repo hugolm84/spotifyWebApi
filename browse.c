@@ -80,7 +80,7 @@ static void browse_album_callback(sp_albumbrowse *browse, void *userdata)
         if (sp_albumbrowse_error(browse) == SP_ERROR_OK){
 
             json_t *album = json_object();
-
+            json_object_set_new(json, "type", json_string_nocheck("album"));
             json_object_set_new(json, "album", album);
             json_t *result = json_array();
             json_object_set_new(album, "result", result);
@@ -117,7 +117,7 @@ static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
         if (sp_artistbrowse_error(browse) == SP_ERROR_OK){
 
             json_t *artist = json_object();
-
+            json_object_set_new(json, "type", json_string_nocheck("artist"));
             json_object_set_new(json, "artist", artist);
             json_t *result = json_array();
             json_object_set_new(artist, "result", result);
@@ -161,7 +161,7 @@ static void track_browse_try(void)
         if(ok){
 
             json_t *track = json_object();
-
+            json_object_set_new(json, "type", json_string_nocheck("track"));
             json_object_set_new(json, "track", track);
             json_t *result = json_array();
             json_object_set_new(track, "result", result);
@@ -198,7 +198,7 @@ static void playlist_browse_try(void)
 
         json_t *json = json_object();
         json_t *playlist = json_object();
-
+        json_object_set_new(json, "type", json_string_nocheck("playlist"));
         json_object_set_new(json, "playlist", playlist);
         json_t *result = json_array();
         json_object_set_new(playlist, "result", result);

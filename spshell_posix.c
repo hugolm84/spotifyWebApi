@@ -18,6 +18,7 @@
  *   all copies or substantial portions of the Software.
  */
 
+
 #include <unistd.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -29,9 +30,7 @@
 #include "cmd.h"
 
 /// Socket identifiers
-extern int sockfd, new_fd, newfd, numbytes;
-
-struct sockaddr_in server;
+int newfd, numbytes, dport;
 
 /// Set when libspotify want to process events
 static int notify_events;
@@ -86,9 +85,10 @@ char *replace(char *st)
  * socketreciver waits for a new request and
  * executes it.
  */
-static void *socketreciver(void *aux)
+static void *socketreciver(void *sock)
 {
         pthread_mutex_lock(&notify_mutex);
+        int sockfd = (int)sock;
 
         while(1) {
 
@@ -138,66 +138,23 @@ static void *socketreciver(void *aux)
         return NULL;
 }
 
-
 /**
  *
  */
-void start_recv(void)
-{
-        static pthread_t id;
-        if (id)
-                return;
-        wait_for_cmd = 1;
-        pthread_create(&id, NULL, socketreciver, NULL);
-}
+int startListner(){
 
-/**
- *
- */
-int main(int argc, char **argv)
-{
+    int port;
+    if(dport == NULL)
+        port = PORT;
+    else port = dport;
 
-    int port = (argc == 2) ? atoi(argv[1]) : PORT;
+    int socketfd;
+
     printf("Listening on port %d\n", port);
-    struct sigaction sa;
-    if ((sockfd = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
-            perror("socket");
-            exit(EXIT_FAILURE);
-    }
 
-    /// Setting server ip
-    memset(&server, 0, sizeof(server));
-    server.sin_family = PF_INET;
-    server.sin_addr.s_addr = INADDR_ANY;
-    server.sin_port = htons(port);
-
-    /// Set the socket
-    char opt = 1;
-    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt));
-
-    /// ! IMPORTANT!! no ioctl =  socket blocks on large buffers!
-    /// @todo Does it really? Check that
-    /*int dontblock;
-    int rc;
-    int server_sock;
-    dontblock = 1;
-
-    rc = ioctl(server_sock, FIONBIO, (char *) &dontblock);*/
-
-
-    /// Bind the port
-    if (bind(sockfd, (struct sockaddr *) &server, sizeof(server)) < 0) {
-            perror("bind");
-            exit(EXIT_FAILURE);
-    }
-
-    /// And also listen
-    if (listen(sockfd, SOMAXCONN) < 0) {
-            perror("listen");
-            exit(EXIT_FAILURE);
-    }
 
     /// clean all the dead processes
+        struct sigaction sa;
     sa.sa_handler = sigchld_handler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
@@ -208,72 +165,144 @@ int main(int argc, char **argv)
     }
 
 
-	int r;
-	int next_timeout = 0;
 
-	pthread_mutex_init(&notify_mutex, NULL);
-	pthread_cond_init(&notify_cond, NULL);
-	pthread_cond_init(&prompt_cond, NULL);
+    if ((socketfd = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
+            perror("socket");
+            exit(EXIT_FAILURE);
+    }
+
+    /// Setting server ip
+
+    struct sockaddr_in server;
+    memset(&server, 0, sizeof(server));
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = INADDR_ANY;
+    server.sin_port = htons(port);
+
+    /// Set the socket
+    char opt = 1;
+
+    setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt));
+
+    /// Bind the port
+    if (bind(socketfd, (struct sockaddr *) &server, sizeof(server)) < 0) {
+            perror("bind");
+            exit(EXIT_FAILURE);
+    }
+
+    /// And also listen
+    if (listen(socketfd, SOMAXCONN) < 0) {
+            perror("listen");
+            exit(EXIT_FAILURE);
+    }
+
+
+    return socketfd;
+
+}
+
+/**
+ *
+ */
+void start_recv(void)
+{
+        static pthread_t id;
+        int socketfd;
+        if (id)
+                return;
+
+        /// Start the listner
+        socketfd = startListner();
+
+        wait_for_cmd = 1;
+        pthread_create(&id, NULL, socketreciver, (void*)socketfd);
+}
+
+
+
+/**
+ *
+ */
+int main(int argc, char **argv)
+{
+
+        int r;
+        int next_timeout = 0;
+        dport = (argc == 2) ? atoi(argv[1]) : PORT;
+        pthread_mutex_init(&notify_mutex, NULL);
+        pthread_cond_init(&notify_cond, NULL);
+        pthread_cond_init(&prompt_cond, NULL);
 
         if ((r = spshell_init(USERNAME, PASSWORD)) != 0)
-		exit(r);
+                exit(r);
 
-	pthread_mutex_lock(&notify_mutex);
+        pthread_mutex_lock(&notify_mutex);
 
         while(!is_logged_out) {
                 /// Release prompt
 
-
-
-		if (next_timeout == 0) {
+                if (next_timeout == 0) {
                         while(!notify_events && !request)
-				pthread_cond_wait(&notify_cond, &notify_mutex);
-		} else {
-			struct timespec ts;
+                                pthread_cond_wait(&notify_cond, &notify_mutex);
+                } else {
 
-#if _POSIX_TIMERS > 0
-			clock_gettime(CLOCK_REALTIME, &ts);
-#else
-			struct timeval tv;
-			gettimeofday(&tv, NULL);
-			TIMEVAL_TO_TIMESPEC(&tv, &ts);
-#endif
+                        struct timespec ts;
+                        clock_gettime(CLOCK_REALTIME, &ts);
 
-			ts.tv_sec += next_timeout / 1000;
-			ts.tv_nsec += (next_timeout % 1000) * 1000000;
+                        ts.tv_sec += next_timeout / 1000;
+                        ts.tv_nsec += (next_timeout % 1000) * 1000000;
 
                         while(!notify_events && !request) {
-				if(pthread_cond_timedwait(&notify_cond, &notify_mutex, &ts))
-					break;
-			}
-		}
+                                if(pthread_cond_timedwait(&notify_cond, &notify_mutex, &ts))
+                                        break;
+                        }
+                }
 
                 /// Process input from request
                 if(request) {
                         char *l = request;
                         request = NULL;
-		
-			pthread_mutex_unlock(&notify_mutex);
+                        pthread_mutex_unlock(&notify_mutex);
                         cmd_exec_unparsed(l);
                         pthread_mutex_lock(&notify_mutex);
-		}
+                }
 
                 /// Process libspotify events
-		notify_events = 0;
-		pthread_mutex_unlock(&notify_mutex);
+                notify_events = 0;
+                pthread_mutex_unlock(&notify_mutex);
 
-		do {
-			sp_session_process_events(g_session, &next_timeout);
-		} while (next_timeout == 0);
+                do {
+                        sp_session_process_events(g_session, &next_timeout);
+                } while (next_timeout == 0);
 
-		pthread_mutex_lock(&notify_mutex);
-	}
-	printf("Logged out\n");
-	sp_session_release(g_session);
-	printf("Exiting...\n");
-	return 0;
+                pthread_mutex_lock(&notify_mutex);
+        }
+        printf("Logged out\n");
+        sp_session_release(g_session);
+        printf("Exiting...\n");
+        return 0;
 }
 
+/**
+ *
+ */
+char *setHeader(int code){
+
+    char *header;
+    switch(code){
+        case 200: header = STATUS_OK;
+        break;
+        case 400: header = STATUS_ERR;
+        break;
+        case 404: header = STATUS_CONTERR;
+        break;
+        case 503: header = STATUS_CONNERR;
+        break;
+        default: header = STATUS_NIMPL;
+    }
+    return header;
+
+}
 
 void cmd_sendresponse(json_t *json, int code){
 
@@ -281,23 +310,14 @@ void cmd_sendresponse(json_t *json, int code){
     char *response = json_dumps(json, JSON_COMPACT);
     json_decref(json);
 
-    /// Not that nice way of sending response header
-    /// @todo fix a better way
-    char *header;
-    switch(code){
-        case 200: header = STATUS_OK;
-        break;
-        case 400: header = STATUS_ERR;
-        break;
-        case 503: header = STATUS_CONNERR;
-        break;
-        default: header = STATUS_NIMPL;
-    }
         /// this is the child process
         if(!fork()){
 
+
+                struct sockaddr_in server;
                 /// child doesn’t need the listener
-                close(sockfd);
+                //close(sockfd);
+                char *header = setHeader(code);
                 send(newfd, header, strlen(header), 0);
                 char *jsonheader = JSON;
                  send(newfd,jsonheader, strlen(jsonheader), 0);
@@ -321,10 +341,10 @@ void cmd_sendresponse(json_t *json, int code){
 void cmd_done(void)
 {
 
-	pthread_mutex_lock(&notify_mutex);
+        pthread_mutex_lock(&notify_mutex);
         wait_for_cmd = 1;
-	pthread_cond_signal(&prompt_cond);
-	pthread_mutex_unlock(&notify_mutex);
+        pthread_cond_signal(&prompt_cond);
+        pthread_mutex_unlock(&notify_mutex);
 }
 
 
@@ -333,8 +353,8 @@ void cmd_done(void)
  */
 void notify_main_thread(sp_session *session)
 {
-	pthread_mutex_lock(&notify_mutex);
+        pthread_mutex_lock(&notify_mutex);
 	notify_events = 1;
-	pthread_cond_signal(&notify_cond);
-	pthread_mutex_unlock(&notify_mutex);
+        pthread_cond_signal(&notify_cond);
+        pthread_mutex_unlock(&notify_mutex);
 }

@@ -85,7 +85,7 @@ void cmd_exec_unparsed(char *l)
 {
 	char *vec[32];
 	int c = tokenize(l, vec, 32);
-	cmd_dispatch(c, vec);
+        cmd_dispatch(c, vec);
 }
 
 
@@ -97,20 +97,20 @@ void cmd_dispatch(int argc, char **argv)
 	int i;
 
 	if(argc < 1) {
-                cmd_sendresponse(put_error(501,"Not implemented"), 501);
+                cmd_sendresponse(put_error(501,"Bad Request"), 404);
 		cmd_done();
 		return;
 	}
 
 	for(i = 0; i < sizeof(commands) / sizeof(commands[0]); i++) {
-		if(!strcmp(commands[i].name, argv[0])) {
+                if(!strcmp(commands[i].name, argv[0])) {
 			if(commands[i].fn(argc, argv))
-				cmd_done();
+                                cmd_done();
 			return;
-		}
+                }
         }
-        cmd_sendresponse(put_error(501,"Not implemented"), 501);
-	cmd_done();
+        cmd_sendresponse(put_error(501,"Not implemented"), 404);
+        cmd_done();
 }
 
 /**
@@ -118,7 +118,7 @@ void cmd_dispatch(int argc, char **argv)
  */
 static int cmd_help(int argc, char **argv)
 {
-	int i;
+        int i;
         json_t *json = json_object();
         json_t *help = json_object();
         json_object_set_new(json, "help", help);
