@@ -19,7 +19,9 @@
  */
 #include "spshell.h"
 #include "cmd.h"
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 static sp_track *track_browse;
 static sp_playlist *playlist_browse;
@@ -86,9 +88,34 @@ json_t *get_album(sp_album *album)
             if(sp_album_name(album))
                 json_object_set_new_nocheck(metadata, "title", json_string_nocheck(sp_album_name(album)));
 
-                json_object_set_new_nocheck(metadata, "albumuri", json_string_nocheck(url));
+             json_object_set_new_nocheck(metadata, "albumuri", json_string_nocheck(url));
 
-                json_object_set_new_nocheck(metadata, "year", json_integer(sp_album_year(album)));
+              const byte *id;
+              sp_image *image;
+              if((id = sp_album_cover(album))){
+                    image = sp_image_create(g_session, id);
+
+                    if(image != NULL ){
+                        l = sp_link_create_from_image(image);
+                        sp_link_as_string(l, url, sizeof(url));
+                        sp_link_release(l);
+                        sp_image_release(image);
+                        char *baseurl = "http://o.scdn.co/image/";
+                        char *cover = strtok(url, ":");
+                              cover = strtok(NULL, ":");
+                              cover = strtok(NULL, ":");
+
+                        char *coverlink = malloc(strlen(baseurl) + strlen(cover) + 1);
+                        if ( coverlink != NULL ){
+                                 strcpy(coverlink, baseurl);
+                                 strcat(coverlink, cover);
+                                 json_object_set_new_nocheck(metadata, "albumcover", json_string_nocheck(coverlink));
+                                 free(coverlink);
+                        }
+                    }
+              }
+
+              json_object_set_new_nocheck(metadata, "year", json_integer(sp_album_year(album)));
 
 
     }
