@@ -27,6 +27,33 @@ static sp_track *track_browse;
 static sp_playlist *playlist_browse;
 static sp_playlist_callbacks pl_callbacks;
 
+
+const char *imagelink(sp_image *image){
+
+    char url[256];
+    sp_link *l;
+    if(image != NULL ){
+        l = sp_link_create_from_image(image);
+        sp_link_as_string(l, url, sizeof(url));
+        sp_link_release(l);
+        sp_image_release(image);
+        char *baseurl = "http://o.scdn.co/image/";
+        char *cover = strtok(url, ":");
+              cover = strtok(NULL, ":");
+              cover = strtok(NULL, ":");
+
+        char *coverlink = malloc(strlen(baseurl) + strlen(cover) + 1);
+
+        if ( coverlink != NULL ){
+                 strcpy(coverlink, baseurl);
+                 strcat(coverlink, cover);
+
+                return (const char*)coverlink;
+        }
+    }
+    return NULL;
+}
+
 /**
  * put the track into a json
  *
@@ -90,30 +117,9 @@ json_t *get_album(sp_album *album)
 
              json_object_set_new_nocheck(metadata, "albumuri", json_string_nocheck(url));
 
-              const byte *id;
-              sp_image *image;
-              if((id = sp_album_cover(album))){
-                    image = sp_image_create(g_session, id);
-
-                    if(image != NULL ){
-                        l = sp_link_create_from_image(image);
-                        sp_link_as_string(l, url, sizeof(url));
-                        sp_link_release(l);
-                        sp_image_release(image);
-                        char *baseurl = "http://o.scdn.co/image/";
-                        char *cover = strtok(url, ":");
-                              cover = strtok(NULL, ":");
-                              cover = strtok(NULL, ":");
-
-                        char *coverlink = malloc(strlen(baseurl) + strlen(cover) + 1);
-                        if ( coverlink != NULL ){
-                                 strcpy(coverlink, baseurl);
-                                 strcat(coverlink, cover);
-                                 json_object_set_new_nocheck(metadata, "albumcover", json_string_nocheck(coverlink));
-                                 free(coverlink);
-                        }
-                    }
-              }
+             const byte *id;
+             if((id = sp_album_cover(album)))
+                 json_object_set_new_nocheck(metadata, "albumcover", json_string_nocheck(imagelink(sp_image_create(g_session, id))));
 
               json_object_set_new_nocheck(metadata, "year", json_integer(sp_album_year(album)));
 
@@ -121,6 +127,7 @@ json_t *get_album(sp_album *album)
     }
     return metadata;
 }
+
 
 
 /**
@@ -139,16 +146,27 @@ static void browse_album_callback(sp_albumbrowse *browse, void *userdata)
             json_t *album = json_object();
             json_object_set_new(json, "type", json_string_nocheck("album"));
             json_object_set_new(json, "album", album);
+
+            const byte *id;
+            if((id = sp_album_cover(sp_albumbrowse_album(browse))))
+                json_object_set_new_nocheck(album, "albumcover", json_string_nocheck(imagelink(sp_image_create(g_session, id))));
+
+
+
+            json_object_set_new(album, "artist",
+                                json_string_nocheck(sp_artist_name(sp_album_artist(sp_albumbrowse_album(browse)))));
+            json_object_set_new(album, "name",
+                                json_string_nocheck(sp_album_name(sp_albumbrowse_album(browse))));
+
+
             json_t *result = json_array();
             json_object_set_new(album, "result", result);
 
             for (i = 0; i < sp_albumbrowse_num_tracks(browse); ++i)
                 json_array_append_new(result, get_track(sp_albumbrowse_track(browse, i)));
 
-            json_object_set_new(album, "artist",
-                                json_string_nocheck(sp_artist_name(sp_album_artist(sp_albumbrowse_album(browse)))));
-            json_object_set_new(album, "name",
-                                json_string_nocheck(sp_album_name(sp_albumbrowse_album(browse))));
+
+
 
              cmd_sendresponse(json, 200);
 
@@ -176,14 +194,24 @@ static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
             json_t *artist = json_object();
             json_object_set_new(json, "type", json_string_nocheck("artist"));
             json_object_set_new(json, "artist", artist);
+
+            const byte *id;
+            if((id = sp_artistbrowse_portrait(browse, 0)))
+                json_object_set_new_nocheck(artist, "portrait", json_string_nocheck(imagelink(sp_image_create(g_session, id))));
+
+
+
+            json_object_set_new(artist, "name",
+                                json_string_nocheck(sp_artist_name(sp_artistbrowse_artist(browse))));
+
+
             json_t *result = json_array();
             json_object_set_new(artist, "result", result);
 
             for (i = 0; i < sp_artistbrowse_num_tracks(browse); ++i)
                 json_array_append_new(result, get_track(sp_artistbrowse_track(browse, i)));
 
-            json_object_set_new(artist, "name",
-                                json_string_nocheck(sp_artist_name(sp_artistbrowse_artist(browse))));
+
 
             cmd_sendresponse(json, 200);
 
@@ -210,16 +238,22 @@ static void browse_artistalbums_callback(sp_artistbrowse *browse, void *userdata
             json_t *artist = json_object();
             json_object_set_new(json, "type", json_string_nocheck("albums"));
             json_object_set_new(json, "albums", artist);
+
+            const byte *id;
+            if((id = sp_artistbrowse_portrait(browse, 0)))
+                json_object_set_new_nocheck(artist, "portrait", json_string_nocheck(imagelink(sp_image_create(g_session, id))));
+
+            json_object_set_new(artist, "name",
+                                json_string_nocheck(sp_artist_name(sp_artistbrowse_artist(browse))));
+
             json_t *result = json_array();
             json_object_set_new(artist, "result", result);
 
             for (i = 0; i < sp_artistbrowse_num_albums(browse); ++i)
                 json_array_append_new(result, get_album(sp_artistbrowse_album(browse, i)));
 
-            json_object_set_new(artist, "name",
-                                json_string_nocheck(sp_artist_name(sp_artistbrowse_artist(browse))));
-
             cmd_sendresponse(json, 200);
+
 
         }else cmd_sendresponse(put_error(400, sp_error_message(sp_artistbrowse_error(browse))), 400);
 
@@ -289,6 +323,7 @@ static void playlist_browse_try(void)
         json_t *playlist = json_object();
         json_object_set_new(json, "type", json_string_nocheck("playlist"));
         json_object_set_new(json, "playlist", playlist);
+
         json_t *result = json_array();
         json_object_set_new(playlist, "result", result);
 
