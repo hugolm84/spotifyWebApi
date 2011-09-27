@@ -65,6 +65,36 @@ json_t *get_track(sp_track *track)
     return metadata;
 }
 
+/**
+ * put the track into a json
+ *
+ * @param sp_track *track
+ */
+
+json_t *get_album(sp_album *album)
+{
+
+    char url[256];
+    sp_link *l;
+    l = sp_link_create_from_album(album);
+    sp_link_as_string(l, url, sizeof(url));
+    sp_link_release(l);
+    json_t *metadata = json_object();
+
+    if(sp_album_is_loaded(album)){
+
+            if(sp_album_name(album))
+                json_object_set_new_nocheck(metadata, "title", json_string_nocheck(sp_album_name(album)));
+
+                json_object_set_new_nocheck(metadata, "albumuri", json_string_nocheck(url));
+
+                json_object_set_new_nocheck(metadata, "year", json_integer(sp_album_year(album)));
+
+
+    }
+    return metadata;
+}
+
 
 /**
  * Callback for libspotify
@@ -137,7 +167,39 @@ static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
 	cmd_done();
 }
 
+/**
+ * Callback for libspotify
+ *
+ * @param browse    The browse result object that is now done
+ * @param userdata  The opaque pointer given to sp_artistbrowse_create()
+ */
+static void browse_artistalbums_callback(sp_artistbrowse *browse, void *userdata)
+{
+    int i;
+    json_t *json = json_object();
 
+        if (sp_artistbrowse_error(browse) == SP_ERROR_OK){
+
+            json_t *artist = json_object();
+            json_object_set_new(json, "type", json_string_nocheck("albums"));
+            json_object_set_new(json, "albums", artist);
+            json_t *result = json_array();
+            json_object_set_new(artist, "result", result);
+
+            for (i = 0; i < sp_artistbrowse_num_albums(browse); ++i)
+                json_array_append_new(result, get_album(sp_artistbrowse_album(browse, i)));
+
+            json_object_set_new(artist, "name",
+                                json_string_nocheck(sp_artist_name(sp_artistbrowse_artist(browse))));
+
+            cmd_sendresponse(json, 200);
+
+        }else cmd_sendresponse(put_error(400, sp_error_message(sp_artistbrowse_error(browse))), 400);
+
+        sp_artistbrowse_release(browse);
+
+        cmd_done();
+}
 
 /**
  *
@@ -259,6 +321,15 @@ void browse_playlist(sp_playlist *pl)
         playlist_browse_try();
 }
 
+
+/**
+ *
+ */
+static void albums_usage(void)
+{
+        cmd_sendresponse(put_error(400,"Usage: albums <spotify-uri>"), 400);
+}
+
 /**
  *
  */
@@ -267,6 +338,41 @@ static void browse_usage(void)
         cmd_sendresponse(put_error(400,"Usage: browse <spotify-uri>"), 400);
 }
 
+
+/**
+ *
+ */
+int cmd_albums(int argc, char **argv)
+{
+        sp_link *link;
+
+        if (argc != 2) {
+                albums_usage();
+                return -1;
+        }
+
+
+        link = sp_link_create_from_string(argv[1]);
+
+        if (!link) {
+                cmd_sendresponse(put_error(400,"Not a spotify link"), 400);
+                return -1;
+        }
+
+        switch(sp_link_type(link)) {
+        default:
+                cmd_sendresponse(put_error(400,"Can not handle link"), 400);
+                sp_link_release(link);
+                return -1;
+
+        case SP_LINKTYPE_ARTIST:
+                sp_artistbrowse_create(g_session, sp_link_as_artist(link), browse_artistalbums_callback, NULL);
+                break;
+        }
+
+        sp_link_release(link);
+        return 0;
+}
 
 /**
  *

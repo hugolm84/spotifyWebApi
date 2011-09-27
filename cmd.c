@@ -37,6 +37,7 @@ struct {
 } commands[] = {
 
 { "browse",cmd_browse,"Browse a Spotify URI","/browse/<spotify-uri>", ""},
+{ "albums",cmd_albums,"Get all albums from a Spotify URI","/albums/<spotify-uri>", ""},
 { "search",cmd_search,"Search","/search/<query-string>", "Replace spaces with +"},
 { "help",  cmd_help,  "help", "/help", ""},
 

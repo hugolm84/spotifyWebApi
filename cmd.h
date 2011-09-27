@@ -25,7 +25,7 @@
 extern void cmd_exec_unparsed(char *l);
 extern void cmd_dispatch(int argc, char **argv);
 extern void cmd_done(void);
-
+extern int cmd_albums(int argc, char **argv);
 extern int cmd_browse(int argc, char **argv);
 extern int cmd_search(int argc, char **argv);
 
@@ -34,6 +34,7 @@ extern int cmd_search(int argc, char **argv);
 extern void cmd_sendresponse(json_t *resp, int code);
 void browse_playlist(sp_playlist *pl);
 extern json_t *get_track(sp_track *track);
+extern json_t *get_album(sp_album *album);
 extern json_t *put_error(int code, const char *error);
 
 
