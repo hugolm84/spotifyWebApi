@@ -1,5 +1,6 @@
 # spotifyWebApi
 Modified and further developed code based on Spotifys spshell example.
+I would love to get any thoughts on makeing this more threaded, but consider that libspotify only supports one session per process...
 
 ## Supported API methods
 
