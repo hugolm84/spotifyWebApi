@@ -209,7 +209,8 @@ static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
             json_object_set_new(artist, "result", result);
 
             for (i = 0; i < sp_artistbrowse_num_tracks(browse); ++i)
-                json_array_append_new(result, get_track(sp_artistbrowse_track(browse, i)));
+                if(strlen(sp_artist_name(sp_artistbrowse_artist(browse))) == strlen(sp_artist_name(sp_track_artist(sp_artistbrowse_track(browse,i),0))) )
+                    json_array_append_new(result, get_track(sp_artistbrowse_track(browse, i)));
 
 
 
@@ -261,6 +262,7 @@ static void browse_artistalbums_callback(sp_artistbrowse *browse, void *userdata
 
         cmd_done();
 }
+
 
 /**
  *
@@ -399,6 +401,8 @@ static void browse_usage(void)
 {
         cmd_sendresponse(put_error(400,"Usage: browse <spotify-uri>"), 400);
 }
+
+
 
 
 /**
