@@ -291,6 +291,8 @@ static void track_browse_try(void)
             json_t *result = json_array();
             json_object_set_new(track, "result", result);
             json_array_append_new(result, get_track(track_browse));
+            json_object_set_new(track, "trackCount",
+                                json_integer(1));
 
             cmd_sendresponse(json, 200);
         }
