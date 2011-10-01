@@ -253,6 +253,8 @@ static void browse_artistalbums_callback(sp_artistbrowse *browse, void *userdata
             for (i = 0; i < sp_artistbrowse_num_albums(browse); ++i)
                 json_array_append_new(result, get_album(sp_artistbrowse_album(browse, i)));
 
+
+
             cmd_sendresponse(json, 200);
 
 
@@ -291,8 +293,6 @@ static void track_browse_try(void)
             json_t *result = json_array();
             json_object_set_new(track, "result", result);
             json_array_append_new(result, get_track(track_browse));
-            json_object_set_new(track, "trackCount",
-                                json_integer(1));
 
             cmd_sendresponse(json, 200);
         }
@@ -346,10 +346,6 @@ static void playlist_browse_try(void)
 
         json_object_set_new(playlist, "subscribers",
                             json_integer(sp_playlist_num_subscribers(playlist_browse)));
-
-
-        json_object_set_new(playlist, "trackCount",
-                            json_integer(sp_playlist_num_tracks(playlist_browse)));
 
         sp_playlist_remove_callbacks(playlist_browse, &pl_callbacks, NULL);
         sp_playlist_release(playlist_browse);
