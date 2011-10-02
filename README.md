@@ -4,7 +4,6 @@ I would love to get any thoughts on makeing this more threaded, but consider tha
 
 ## Supported API methods
 
-    GET /playlist/{id}
     GET /search/{query}
     GET /browse/{id}
     GET /albums/{id}
