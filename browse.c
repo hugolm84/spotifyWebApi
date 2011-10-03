@@ -177,7 +177,15 @@ static void browse_album_callback(sp_albumbrowse *browse, void *userdata)
 	cmd_done();
 }
 
+static int comp(const void* p1, const void* p2) {
 
+  int* arr1 = (int*)p2;
+  int* arr2 = (int*)p1;
+  int diff1 = arr1[1] - arr2[1];
+
+  if (diff1) return diff1;
+    return arr1[0] - arr2[0];
+}
 /**
  * Callback for libspotify
  *
@@ -208,11 +216,31 @@ static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
             json_t *result = json_array();
             json_object_set_new(artist, "result", result);
 
-            for (i = 0; i < sp_artistbrowse_num_tracks(browse); ++i)
-                if(strlen(sp_artist_name(sp_artistbrowse_artist(browse))) == strlen(sp_artist_name(sp_track_artist(sp_artistbrowse_track(browse,i),0))) )
-                    json_array_append_new(result, get_track(sp_artistbrowse_track(browse, i)));
+            /**
+            * So maybe we dont want all tracks, just the top
+            * or a limit. So lets sort the response for that
+            **/
+            int trackArray[sp_artistbrowse_num_tracks(browse)][2];
+            int k;
+            k = 0;
+            for (i = 0; i < sp_artistbrowse_num_tracks(browse); ++i-1){
+                if(strlen(sp_artist_name(sp_artistbrowse_artist(browse))) == strlen(sp_artist_name(sp_track_artist(sp_artistbrowse_track(browse,i),0))) ){
+                    trackArray[k][0] = i;
+                    trackArray[k][1] = sp_track_popularity(sp_artistbrowse_track(browse,i));
+                    k++;
+                }
+            }
 
+            qsort(trackArray, k, 2*sizeof(int), comp);
 
+            /**
+            * lets set the limit to 40
+            * @todo: allow param from uri request to set a limit here.
+            **/
+            int limit = 40;
+            for(i = 0; i < k; i++)
+                if(i < limit)
+                    json_array_append_new(result, get_track(sp_artistbrowse_track(browse, trackArray[i][0])));
 
             cmd_sendresponse(json, 200);
 
