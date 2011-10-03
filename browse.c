@@ -225,12 +225,20 @@ static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
             **/
             int trackArray[sp_artistbrowse_num_tracks(browse)][2];
             int k = 0;
+
             for (i = 0; i < sp_artistbrowse_num_tracks(browse)-1; ++i){
-                if(strlen(sp_artist_name(sp_artistbrowse_artist(browse))) == strlen(sp_artist_name(sp_track_artist(sp_artistbrowse_track(browse,i),0))) ){
+                /**
+                * Just parse the first 300. This can lead to timeouts if tracks exceeds a certain number.
+                * @todo: Do some more checking here, and validate offical tracks only?
+                **/
+                //if(i < 300){
+                if( strcmp(sp_artist_name(sp_artistbrowse_artist(browse)),sp_artist_name(sp_track_artist(sp_artistbrowse_track(browse,i),0))) == 0 ){
+
                     trackArray[k][0] = i;
                     trackArray[k][1] = sp_track_popularity(sp_artistbrowse_track(browse,i));
                     k++;
                 }
+                //}
             }
 
             qsort(trackArray, k, 2*sizeof(int), comp);
