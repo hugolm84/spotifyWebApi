@@ -196,6 +196,10 @@ static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
 {
     int i;
     int limit = (int)userdata;
+
+    if(!limit)
+        limit = 0;
+
     json_t *json = json_object();
 
         if (sp_artistbrowse_error(browse) == SP_ERROR_OK){
@@ -480,7 +484,7 @@ int cmd_browse(int argc, char **argv)
 	
 	link = sp_link_create_from_string(argv[1]);
 
-        int limit = (atoi(argv[2]) ? atoi(argv[2]) : 0);
+        int limit = (argc == 3) ? atoi(argv[2]) : 0;
 
 	if (!link) {
                 cmd_sendresponse(put_error(400,"Not a spotify link"), 400);
