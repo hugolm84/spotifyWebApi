@@ -29,7 +29,6 @@
 #include "spshell.h"
 #include "cmd.h"
 
-
 /// Socket identifiers
 int newfd, numbytes, dport;
 
@@ -93,7 +92,6 @@ static void *socketreciver(void *sock)
 
         while(1) {
 
-
                 while(wait_for_cmd == 0)
                         pthread_cond_wait(&prompt_cond, &notify_mutex);
 
@@ -105,14 +103,15 @@ static void *socketreciver(void *sock)
                 char method[BUF_SIZE] = "";
                 char url[BUF_SIZE] = "";
                 char protocol[BUF_SIZE] = "";
-
                 socklen_t len;
+
                 memset(&client, 0, sizeof(client));
                 len = sizeof client;
                 if ((newfd = accept(sockfd, (struct sockaddr *)&client, &len)) < 0) {
                         perror("accept");
                         exit(EXIT_FAILURE);
                 }
+
 
                 if (recv(newfd, buf, sizeof(buf), 0) < 0) {
                         perror("recv");
@@ -151,12 +150,11 @@ int startListner(){
 
     int socketfd;
 
-
     printf("Listening on port %d\n", port);
 
 
     /// clean all the dead processes
-        struct sigaction sa;
+    struct sigaction sa;
     sa.sa_handler = sigchld_handler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
@@ -166,13 +164,12 @@ int startListner(){
             exit(1);
     }
 
+
+
     if ((socketfd = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
             perror("socket");
             exit(EXIT_FAILURE);
     }
-
-    fcntl(socketfd, F_SETFL, O_NONBLOCK);  // set to non-blocking
-    fcntl(socketfd, F_SETFL, O_ASYNC);     // set to asynchronous I/O
 
     /// Setting server ip
 
@@ -323,9 +320,9 @@ void cmd_sendresponse(json_t *json, int code){
                 char *header = setHeader(code);
                 send(newfd, header, strlen(header), 0);
                 char *jsonheader = JSON;
-                send(newfd, jsonheader, strlen(jsonheader)+1, 0);
+                 send(newfd,jsonheader, strlen(jsonheader), 0);
                 int bytes_sent;
-                bytes_sent = sendto(newfd, response, strlen(response)+1, 0 ,(struct sockaddr*)&server, sizeof server);
+                bytes_sent = sendto(newfd, response, strlen(response), 0,(struct sockaddr*)&server, sizeof server);
                 if (bytes_sent < 0) {
                    printf("Error sending packet: %s\n", strerror(errno));
 
