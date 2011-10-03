@@ -197,8 +197,6 @@ static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
     int i;
     int limit = (int)userdata;
 
-    if(!limit)
-        limit = 0;
 
     json_t *json = json_object();
 
@@ -226,9 +224,8 @@ static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
             * or a limit. So lets sort the response for that
             **/
             int trackArray[sp_artistbrowse_num_tracks(browse)][2];
-            int k;
-            k = 0;
-            for (i = 0; i < sp_artistbrowse_num_tracks(browse); ++i-1){
+            int k = 0;
+            for (i = 0; i < sp_artistbrowse_num_tracks(browse)-1; ++i){
                 if(strlen(sp_artist_name(sp_artistbrowse_artist(browse))) == strlen(sp_artist_name(sp_track_artist(sp_artistbrowse_track(browse,i),0))) ){
                     trackArray[k][0] = i;
                     trackArray[k][1] = sp_track_popularity(sp_artistbrowse_track(browse,i));
