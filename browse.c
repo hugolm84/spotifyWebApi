@@ -195,6 +195,7 @@ static int comp(const void* p1, const void* p2) {
 static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
 {
     int i;
+    int limit = (int)userdata;
     json_t *json = json_object();
 
         if (sp_artistbrowse_error(browse) == SP_ERROR_OK){
@@ -233,13 +234,11 @@ static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
 
             qsort(trackArray, k, 2*sizeof(int), comp);
 
-            /**
-            * lets set the limit to 40
-            * @todo: allow param from uri request to set a limit here.
-            **/
-            int limit = 40;
+
             for(i = 0; i < k; i++)
-                if(i < limit)
+                if(limit == 0)
+                    json_array_append_new(result, get_track(sp_artistbrowse_track(browse, trackArray[i][0])));
+                else if(i < limit)
                     json_array_append_new(result, get_track(sp_artistbrowse_track(browse, trackArray[i][0])));
 
             cmd_sendresponse(json, 200);
@@ -425,7 +424,7 @@ static void albums_usage(void)
  */
 static void browse_usage(void)
 {
-        cmd_sendresponse(put_error(400,"Usage: browse <spotify-uri>"), 400);
+        cmd_sendresponse(put_error(400,"Usage: browse <spotify-uri> <int-limit>"), 400);
 }
 
 
@@ -473,14 +472,16 @@ int cmd_browse(int argc, char **argv)
 {
 	sp_link *link;
 
-	if (argc != 2) {
+        if (argc < 2) {
 		browse_usage();
 		return -1;
 	}
 
 	
 	link = sp_link_create_from_string(argv[1]);
-	
+
+        int limit = (atoi(argv[2]) ? atoi(argv[2]) : 0);
+
 	if (!link) {
                 cmd_sendresponse(put_error(400,"Not a spotify link"), 400);
 		return -1;
@@ -497,7 +498,7 @@ int cmd_browse(int argc, char **argv)
 		break;
 
 	case SP_LINKTYPE_ARTIST:
-		sp_artistbrowse_create(g_session, sp_link_as_artist(link), browse_artist_callback, NULL);
+                sp_artistbrowse_create(g_session, sp_link_as_artist(link), browse_artist_callback, limit);
 		break;
 
 	case SP_LINKTYPE_LOCALTRACK:
