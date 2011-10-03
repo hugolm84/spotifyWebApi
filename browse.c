@@ -215,7 +215,8 @@ static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
             json_object_set_new(artist, "name",
                                 json_string_nocheck(sp_artist_name(sp_artistbrowse_artist(browse))));
 
-
+            json_object_set_new(artist, "totalTracks",
+                                json_integer(sp_artistbrowse_num_tracks(browse)));
             json_t *result = json_array();
             json_object_set_new(artist, "result", result);
 
@@ -225,30 +226,49 @@ static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
             **/
             int trackArray[sp_artistbrowse_num_tracks(browse)][2];
             int k = 0;
+            int j = 0;
+
+            /**
+            * @note: High number of tracks seems to lead to timeouts or unreasonable response times.
+            * @todo: Do some more checking here, and validate offical tracks only?
+            **/
+            char *excludelist[4] = {"Remix", "Remaster", "Cover", "Ringtone"};
 
             for (i = 0; i < sp_artistbrowse_num_tracks(browse)-1; ++i){
-                /**
-                * Just parse the first 300. This can lead to timeouts if tracks exceeds a certain number.
-                * @todo: Do some more checking here, and validate offical tracks only?
-                **/
-                //if(i < 300){
-                if( strcmp(sp_artist_name(sp_artistbrowse_artist(browse)),sp_artist_name(sp_track_artist(sp_artistbrowse_track(browse,i),0))) == 0 ){
+                int skip;
+                if( strlen(sp_artist_name(sp_artistbrowse_artist(browse))) == strlen(sp_artist_name(sp_track_artist(sp_artistbrowse_track(browse,i),0))) ){
+                    if( strcmp(sp_artist_name(sp_artistbrowse_artist(browse)), sp_artist_name(sp_track_artist(sp_artistbrowse_track(browse,i),0))) == 0){
+                        for(j = 0; j < 4; j++)
+                            if(strstr(sp_track_name(sp_artistbrowse_track(browse,i)), excludelist[j]) != NULL)
+                                skip = 1;
 
-                    trackArray[k][0] = i;
-                    trackArray[k][1] = sp_track_popularity(sp_artistbrowse_track(browse,i));
-                    k++;
+                        if(skip != 1){
+                            trackArray[k][0] = i;
+                            trackArray[k][1] = sp_track_popularity(sp_artistbrowse_track(browse,i));
+                            k++;
+                        }
+                    }
                 }
-                //}
             }
 
+
+            /**
+             * Sort
+             **/
             qsort(trackArray, k, 2*sizeof(int), comp);
 
-
             for(i = 0; i < k; i++)
-                if(limit == 0)
+                if(limit == 0){
                     json_array_append_new(result, get_track(sp_artistbrowse_track(browse, trackArray[i][0])));
-                else if(i < limit)
+                    j++;
+                }
+                else if(i < limit){
                     json_array_append_new(result, get_track(sp_artistbrowse_track(browse, trackArray[i][0])));
+                    j++;
+                }
+
+            json_object_set_new(artist, "resultCount",
+                                json_integer(j));
 
             cmd_sendresponse(json, 200);
 
