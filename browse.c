@@ -94,6 +94,34 @@ json_t *get_track(sp_track *track)
     return metadata;
 }
 
+
+/**
+ * put the artist into a json
+ *
+ * @param sp_artist *artist
+ */
+
+json_t *get_artist(sp_artist *artist)
+{
+
+    char url[256];
+    sp_link *l;
+    l = sp_link_create_from_artist(artist);
+    sp_link_as_string(l, url, sizeof(url));
+    sp_link_release(l);
+    json_t *metadata = json_object();
+
+    if(sp_artist_is_loaded(artist)){
+
+            if(sp_artist_name(artist))
+                json_object_set_new_nocheck(metadata, "name", json_string_nocheck(sp_artist_name(artist)));
+
+            json_object_set_new_nocheck(metadata, "artisturi", json_string_nocheck(url));
+
+    }
+    return metadata;
+}
+
 /**
  * put the track into a json
  *
@@ -112,8 +140,11 @@ json_t *get_album(sp_album *album)
 
     if(sp_album_is_loaded(album)){
 
-            if(sp_album_name(album))
+             if(sp_album_name(album))
                 json_object_set_new_nocheck(metadata, "title", json_string_nocheck(sp_album_name(album)));
+
+             if(sp_artist_name(sp_album_artist(album)))
+                json_object_set_new_nocheck(metadata, "artist", json_string_nocheck(sp_artist_name(sp_album_artist(album))));
 
              json_object_set_new_nocheck(metadata, "albumuri", json_string_nocheck(url));
 
