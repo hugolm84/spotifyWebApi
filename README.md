@@ -3,10 +3,11 @@ Modified and further developed code based on Spotifys spshell example.
 I would love to get any thoughts on makeing this more threaded, but consider that libspotify only supports one session per process...
 
 ## Supported API methods
-
+    GET /help
     GET /search/{query}
-    GET /browse/{id}
-    GET /albums/{id}
+    GET /browse/{spotifyid}
+    GET /albums/{artistid}
+    GET /toplist/{charts} || {artists|albums|tracks / global | region/countryCode | user/userName}
 
 ## How to build
 

@@ -3,7 +3,7 @@ LDLIBS += -ljansson
 CFLAGs += -Werror
 
 
-$(TARGET): spshell.o spshell_posix.o appkey.o cmd.o browse.o search.o
+$(TARGET): spshell.o spshell_posix.o appkey.o toplist.o cmd.o browse.o search.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(LDLIBS) $^ -o $@
 
 # Copyright (c) 2010 Spotify Ltd
