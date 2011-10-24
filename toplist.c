@@ -58,9 +58,16 @@ static void got_toplist(sp_toplistbrowse *result, void *userdata)
         cmd_done();
 }
 
-
+/**
+ * toplist_charats
+ *
+ * returnes json result for possible charts
+ * the types are taken from spotify client, there may be more types
+ * available for other users in other countries then Sweden.
+ */
 static void toplist_charts(void)
 {
+
 
     json_t *obj = json_pack("{s:[{s:[{s:s,s:s},{s:s,s:s},{s:s,s:s}]},{s:[{s:s,s:s},{s:s,s:s},{s:s,s:s},{s:s,s:s},{s:s,s:s},{s:s,s:s},{s:s,s:s},{s:s,s:s},{s:s,s:s},{s:s,s:s},{s:s,s:s},]}]}",
                             "Charts",
@@ -84,8 +91,8 @@ static void toplist_charts(void)
                                     "id", "region/FI",
                                     "name", "FR",
                                     "id", "region/FR",
-                                    "name", "UK",
-                                    "id", "region/UK",
+                                    "name", "GB",
+                                    "id", "region/GB",
                                     "name", "NO",
                                     "id", "region/NO",
                                     "name", "US",
