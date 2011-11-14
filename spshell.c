@@ -24,12 +24,26 @@
 #include <string.h>
 
 #include "spshell.h"
-#include <pthread.h>
+#include "cmd.h"
+
 sp_session *g_session;
 void (*metadata_updated_fn)(void);
 int is_logged_out;
 int log_to_stderr;
 
+
+
+/**
+ * This callback is called when the user was logged in, but the connection to
+ * Spotify was dropped for some reason.
+ *
+ * @sa sp_session_callbacks#connection_error
+ */
+static void connection_error(sp_session *session, sp_error error)
+{
+        fprintf(stderr, "Connection to Spotify failed: %s\n",
+                        sp_error_message(error));
+}
 
 /**
  * This callback is called when an attempt to login has succeeded or failed.
@@ -43,7 +57,6 @@ static void logged_in(sp_session *session, sp_error error)
         int cc;
 
         if (SP_ERROR_OK != error) {
-
                 fprintf(stderr, "failed to log in to Spotify: %s\n",
                                 sp_error_message(error));
                 sp_session_release(session);
@@ -57,7 +70,6 @@ static void logged_in(sp_session *session, sp_error error)
         cc = sp_session_user_country(session);
 
         fprintf(stderr, "Logged in to Spotify as user %s (registered in country: %c%c)\n", my_name, cc >> 8, cc & 0xff);
-
 
         start_recv();
 }
@@ -98,28 +110,32 @@ static void metadata_updated(sp_session *sess)
 {
         if(metadata_updated_fn)
                 metadata_updated_fn();
+
 }
 
-        /**
+
+/**
  * Session callbacks
  */
 static sp_session_callbacks callbacks = {
         &logged_in,
         &logged_out,
         &metadata_updated,
-        NULL, //&connection_error,
+        &connection_error,
         NULL,
         &notify_main_thread,
         NULL,
         NULL,
         &log_message,
-        NULL, // end_of_track
+        NULL,
         NULL, // streaming error
         NULL, // userinfo update
         NULL, // start_playback
         NULL, // stop_playback
         NULL, // get_audio_buffer_stats
-        NULL, //offline_status_updated,
+        NULL,
+        NULL, // offline error
+
 };
 
 /**
@@ -130,19 +146,18 @@ int spshell_init(const char *username, const char *password)
         sp_session_config config;
         sp_error error;
         sp_session *session;
-
         /// The application key is specific to each project, and allows Spotify
         /// to produce statistics on how our service is used.
         extern const char g_appkey[];
         /// The size of the application key.
         extern const size_t g_appkey_size;
 
+
         memset(&config, 0, sizeof(config));
 
         // Always do this. It allows libspotify to check for
         // header/library inconsistencies.
         config.api_version = SPOTIFY_API_VERSION;
-
         // The path of the directory to store the cache. This must be specified.
         // Please read the documentation on preferred values.
         config.cache_location = "tmp";
@@ -156,12 +171,7 @@ int spshell_init(const char *username, const char *password)
         // and are specific to each application using libspotify.
         config.application_key = g_appkey;
         config.application_key_size = g_appkey_size;
-// Experimiental
 
-        config.compress_playlists = 1;
-        config.dont_save_metadata_for_playlists = 1;
-
-//<-
         // This identifies the application using some
         // free-text string [1, 255] characters.
         config.user_agent = "spshell";
@@ -177,7 +187,20 @@ int spshell_init(const char *username, const char *password)
         }
 
         // Login using the credentials given on the command line.
-        sp_session_login(session, username, password, 0);
+        if (username == NULL) {
+                char reloginname[256];
+
+                if (sp_session_relogin(session) == SP_ERROR_NO_CREDENTIALS) {
+                        fprintf(stderr, "No stored credentials\n");
+                        return 3;
+                }
+                sp_session_remembered_user(session, reloginname, sizeof(reloginname));
+                fprintf(stderr, "Trying to relogin as user %s\n", reloginname);
+
+        } else {
+                sp_session_login(session, username, password, 1);
+        }
+        log_to_stderr = 1;
         g_session = session;
         return 0;
 }
@@ -188,6 +211,10 @@ int spshell_init(const char *username, const char *password)
  */
 int cmd_logout(int argc, char **argv)
 {
+        if(argc == 2 && !strcmp(argv[1], "permanent")) {
+                fprintf(stderr, "Dropping stored credentials\n");
+                sp_session_forget_me(g_session);
+        }
         sp_session_logout(g_session);
         return 0;
 }
@@ -207,3 +234,7 @@ int cmd_log(int argc, char **argv)
         log_to_stderr = !strcmp(argv[1], "enable");
         return 1;
 }
+
+
+
+
