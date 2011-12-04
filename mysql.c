@@ -27,15 +27,19 @@ MYSQL *_mysql_connect(){
 
         conn = mysql_init ( NULL );
 
-        if (!mysql_real_connect(conn, _mHOST,_mUSER, _mPASS, _mDATABASE, 0, NULL, 0)){
-              fprintf(stderr, "%s\n", mysql_error(conn));
-              printf("Failed to init mysql!\n");
+        if (conn == NULL) {
+              printf("Error %u: %s\n", mysql_errno(conn), mysql_error(conn));
               exit(1);
         }
-        else
-            printf("Successfully initated mysql connection\n");
+
+        if (mysql_real_connect(conn, _mHOST,_mUSER, _mPASS, _mDATABASE, 0, NULL, 0) == NULL){
+              printf("Error %u: %s\n", mysql_errno(conn), mysql_error(conn));
+              mysql_close(conn);
+              exit(1);
+        }
     }
 
+    printf("Successfully initated mysql connection\n");
     return conn;
 
 }
@@ -50,8 +54,8 @@ int _mysql_updateStats(MYSQL *conn, char *type){
         (void) mysql_real_escape_string (conn, buf, type, strlen (type));
         sprintf (stmt_buf, "INSERT IGNORE spotifyparser SET statskey='%s', hits = 0;", buf);
         if(stmt_buf != NULL){
-            printf("Doing query %s\n", stmt_buf);
-            mysql_query(conn, stmt_buf);
+            if(mysql_query(conn, stmt_buf))
+                 printf("Error %u: %s\n", mysql_errno(conn), mysql_error(conn));
         }
     }
     {
@@ -59,7 +63,8 @@ int _mysql_updateStats(MYSQL *conn, char *type){
         sprintf (stmt_buf, "UPDATE spotifyparser SET hits = hits + 1 WHERE statskey='%s'", buf);
         if(stmt_buf != NULL){
             printf("Doing query %s\n", stmt_buf);
-            mysql_query(conn, stmt_buf);
+            if(mysql_query(conn, stmt_buf))
+                 printf("Error %u: %s\n", mysql_errno(conn), mysql_error(conn));
         }
     }
 
