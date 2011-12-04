@@ -23,6 +23,8 @@
 #include "cmd.h"
 #include <jansson.h>
 
+
+extern MYSQL *g_conn;
 static int cmd_help(int argc, char **argv);
 
 /**

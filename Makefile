@@ -1,9 +1,9 @@
 TARGET=spshell
-LDLIBS += -ljansson
+LDLIBS += -ljansson -lmysqlclient
 CFLAGs += -Werror
 
 
-$(TARGET): spshell.o spshell_posix.o appkey.o toplist.o cmd.o browse.o search.o
+$(TARGET): spshell.o spshell_posix.o appkey.o toplist.o cmd.o browse.o search.o mysql.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(LDLIBS) $^ -o $@
 
 # Copyright (c) 2010 Spotify Ltd

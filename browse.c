@@ -23,6 +23,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef USE_MYSQL
+extern MYSQL* g_conn;
+extern int _mysql_updateStats(MYSQL *, char*);
+#endif
 static sp_track *track_browse;
 static sp_playlist *playlist_browse;
 static sp_playlist_callbacks pl_callbacks;
@@ -226,7 +230,7 @@ static int comp(const void* p1, const void* p2) {
 static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
 {
     int i;
-    int limit = (int)userdata;
+    int *limit = (int*)&userdata;
 
 
     json_t *json = json_object();
@@ -287,13 +291,13 @@ static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
              * Sort
              **/
             qsort(trackArray, k, 2*sizeof(int), comp);
-
+            j = 0;
             for(i = 0; i < k; i++)
-                if(limit == 0){
+                if(*limit == 0){
                     json_array_append_new(result, get_track(sp_artistbrowse_track(browse, trackArray[i][0])));
                     j++;
                 }
-                else if(i < limit){
+                else if(i < *limit){
                     json_array_append_new(result, get_track(sp_artistbrowse_track(browse, trackArray[i][0])));
                     j++;
                 }
@@ -530,6 +534,7 @@ int cmd_albums(int argc, char **argv)
  */
 int cmd_browse(int argc, char **argv)
 {
+
 	sp_link *link;
 
         if (argc < 2) {
@@ -540,7 +545,7 @@ int cmd_browse(int argc, char **argv)
 	
 	link = sp_link_create_from_string(argv[1]);
 
-        int limit = (argc == 3) ? atoi(argv[2]) : 0;
+        long limit = (argc == 3) ? atoi(argv[2]) : 0;
 
 	if (!link) {
                 cmd_sendresponse(put_error(400,"Not a spotify link"), 400);
@@ -553,16 +558,25 @@ int cmd_browse(int argc, char **argv)
 		sp_link_release(link);
 		return -1;
 
-	case SP_LINKTYPE_ALBUM:
+        case SP_LINKTYPE_ALBUM:
+#ifdef USE_MYSQL
+                _mysql_updateStats(g_conn, "album");
+#endif
 		sp_albumbrowse_create(g_session, sp_link_as_album(link), browse_album_callback, NULL);
 		break;
 
 	case SP_LINKTYPE_ARTIST:
-                sp_artistbrowse_create(g_session, sp_link_as_artist(link), SP_ARTISTBROWSE_FULL, browse_artist_callback, limit);
+#ifdef USE_MYSQL
+                _mysql_updateStats(g_conn, "artist");
+#endif
+                sp_artistbrowse_create(g_session, sp_link_as_artist(link), SP_ARTISTBROWSE_FULL, browse_artist_callback, (void*)limit);
                 break;
 
 	case SP_LINKTYPE_LOCALTRACK:
 	case SP_LINKTYPE_TRACK:
+#ifdef USE_MYSQL
+                _mysql_updateStats(g_conn, "track");
+#endif
                 track_browse = sp_link_as_track(link);
                 metadata_updated_fn = track_browse_try;
                 sp_track_add_ref(track_browse);
@@ -570,6 +584,9 @@ int cmd_browse(int argc, char **argv)
 		break;
 
 	case SP_LINKTYPE_PLAYLIST:
+#ifdef USE_MYSQL
+                _mysql_updateStats(g_conn, "playlist");
+#endif
 		browse_playlist(sp_playlist_create(g_session, link));
 		break;
 	}

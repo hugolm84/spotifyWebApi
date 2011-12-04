@@ -23,22 +23,21 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <libspotify/api.h>
-
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/ioctl.h>
-
 #include <netdb.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
+
 /**
  * BUF_SIZE
  * IMPORTANT!
- *	If you are getting truncated responses, increase this
+ *  If you are getting truncated responses, increase this
  */
- 
+
 #define BUF_SIZE 4096
 #define PORT 5112
 #define USERNAME ""
@@ -50,17 +49,36 @@
 #define STATUS_CONNERR "HTTP/1.0 503 SERVICE UNAVAILABLE\n"
 #define JSON "Content-type: application/json; charset=UTF-8\n\n";
 
+/**
+ * MYSQL
+ */
+/// Comment out USE_MYSQL if you do not wish to use it
+#define USE_MYSQL
 
-int newfd, numbytes;
+#ifdef USE_MYSQL
+    #include "mysql.h"
+    #include <mysql/mysql.h>
+#endif
+
+#define _mHOST ""
+#define _mUSER ""
+#define _mPASS ""
+#define _mDATABASE ""
+#define _mPORT ""
+
+
+/// Socket identifiers
+int newfd, numbytes, DPORT;
+
 extern sp_session *g_session;
-
 extern void (*metadata_updated_fn)(void);
-
 extern int spshell_init(const char *username, const char *password);
-
 extern void notify_main_thread(sp_session *session);
-
 extern void start_recv(void);
 
+/// @todo Fix verbose, debug logging
+/*extern void debug(char *msg);
+extern void verbose(char *msg);
+*/
 
 #endif // SPSHELL_H__
