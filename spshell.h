@@ -53,11 +53,12 @@
  * MYSQL
  */
 /// Comment out USE_MYSQL if you do not wish to use it
-#define USE_MYSQL
+//#define USE_MYSQL
 
 #ifdef USE_MYSQL
     #include "mysql.h"
     #include <mysql/mysql.h>
+    extern MYSQL *g_conn;
 #endif
 
 #define _mHOST ""
@@ -66,19 +67,13 @@
 #define _mDATABASE ""
 #define _mPORT ""
 
-
 /// Socket identifiers
 int newfd, numbytes, DPORT;
-
+//extern void verbose(char *msg);
 extern sp_session *g_session;
 extern void (*metadata_updated_fn)(void);
 extern int spshell_init(const char *username, const char *password);
 extern void notify_main_thread(sp_session *session);
 extern void start_recv(void);
-
-/// @todo Fix verbose, debug logging
-/*extern void debug(char *msg);
-extern void verbose(char *msg);
-*/
 
 #endif // SPSHELL_H__

@@ -23,8 +23,6 @@
 #include "cmd.h"
 #include <jansson.h>
 
-
-extern MYSQL *g_conn;
 static int cmd_help(int argc, char **argv);
 
 /**
@@ -63,6 +61,7 @@ json_t *put_error(int code, const char *error){
 static int tokenize(char *buf, char **vec, int vsize)
 {
         int n = 0;
+
         while(1) {
                 while(*buf > 0 && *buf < 33)
                         buf++;
@@ -88,7 +87,7 @@ static int tokenize(char *buf, char **vec, int vsize)
 void cmd_exec_unparsed(char *l)
 {
 	char *vec[32];
-	int c = tokenize(l, vec, 32);
+        int c = tokenize(l, vec, 32);
         cmd_dispatch(c, vec);
 }
 

@@ -27,7 +27,7 @@
 #include "spshell.h"
 #include "cmd.h"
 #ifdef USE_MYSQL
-#include "mysql.h"
+    #include "mysql.h"
 #endif
 #include <ctype.h>
 
@@ -51,47 +51,73 @@ extern int is_logged_out;
 
 /// MYSQL related
 #ifdef USE_MYSQL
-extern MYSQL *mysql_connect();
-extern int _mysql_close(MYSQL *);
+    extern MYSQL *mysql_connect();
+    extern int _mysql_close(MYSQL *);
 #endif
+
 /**
  * Sighandler
  */
-void sigchld_handler(int s){
-
-        sp_session_logout(g_session);
-        sp_session_release(g_session);
+void sigchld_handler(int s)
+{
+    sp_session_logout(g_session);
+    sp_session_release(g_session);
 #ifdef USE_MYSQL
-        _mysql_close(g_conn);
+    _mysql_close(g_conn);
 #endif
-        printf("Exiting...\n");
-        exit(1);
+    printf("Exiting...\n,");
+    exit(s);
 }
 
 /**
- * replaces / and + with a space,
+ * replaces find with replacement,
  * to be used in the tokenizer later.
  * @todo: replace this function with a proper uri parser
  */
-char *replace(char *st)
+
+char * replace( char const * const original, char const * const pattern, char const * const replacement)
 {
 
-    char newstring[BUF_SIZE];
-    char *str;
-    strncpy(newstring, st, BUF_SIZE);
-    newstring[BUF_SIZE - 1] = 0;
-    unsigned int i = 0;
-    for(i = 0; i < BUF_SIZE; ++i){
-        if (newstring[i] == '/')
-            newstring[i] = ' ';
-        if (newstring[i] == '+')
-            newstring[i] = ' ';
+  size_t const replen = strlen(replacement);
+  size_t const patlen = strlen(pattern);
+  size_t const orilen = strlen(original);
+
+  size_t patcnt = 0;
+  const char * oriptr;
+  const char * patloc;
+
+  // find how many times the pattern occurs in the original string
+  for ( oriptr = original; ( patloc = strstr(oriptr, pattern) ); oriptr = patloc + patlen )
+  {
+    patcnt++;
+  }
+
+  {
+    // allocate memory for the new string
+    size_t const retlen = orilen + patcnt * (replen - patlen);
+    char * const returned = (char *) malloc( sizeof(char) * (retlen + 1) );
+
+    if (returned != NULL)
+    {
+      // copy the original string,
+      // replacing all the instances of the pattern
+      char * retptr = returned;
+      for (oriptr = original; ( patloc =  strstr(oriptr, pattern) ); oriptr = patloc + patlen )
+      {
+        size_t const skplen = patloc - oriptr;
+        // copy the section until the occurence of the pattern
+        strncpy(retptr, oriptr, skplen);
+        retptr += skplen;
+        // copy the replacement
+        strncpy(retptr, replacement, replen);
+        retptr += replen;
+      }
+      // copy the rest of the string.
+      strcpy(retptr, oriptr);
     }
-    str = (char *) newstring;
-    return str;
-
+    return returned;
+  }
 }
-
 
 /**
  * socketreciver waits for a new request and
@@ -102,54 +128,55 @@ static void *socketreciver(void *sock)
         pthread_mutex_lock(&notify_mutex);
         int *sockfd = (int*)&sock;
 
-        while(1) {
+        while(1)
+        {
 
-                while(wait_for_cmd == 0)
-                        pthread_cond_wait(&prompt_cond, &notify_mutex);
+            while(wait_for_cmd == 0)
+                    pthread_cond_wait(&prompt_cond, &notify_mutex);
 
 
-                pthread_mutex_unlock(&notify_mutex);
+            pthread_mutex_unlock(&notify_mutex);
 
-                struct sockaddr_in client;
-                char buf[BUF_SIZE] = "";
-                char method[BUF_SIZE] = "";
-                char url[BUF_SIZE] = "";
-                char protocol[BUF_SIZE] = "";
-                socklen_t len;
+            struct sockaddr_in client;
+            char buf[BUF_SIZE] = "";
+            char method[BUF_SIZE] = "";
+            char url[BUF_SIZE] = "";
+            char protocol[BUF_SIZE] = "";
 
-                memset(&client, 0, sizeof(client));
-                len = sizeof client;
+            socklen_t len;
+            memset(&client, 0, sizeof(client));
+            len = sizeof client;
 
-                if ((newfd = accept(*sockfd, (struct sockaddr *)&client, &len)) < 0) {
-                        perror("accept");
-                        exit(EXIT_FAILURE);
+            if ((newfd = accept(*sockfd, (struct sockaddr *)&client, &len)) < 0)
+            {
+                    perror("accept");
+                    exit(EXIT_FAILURE);
+            }
+
+
+            if (recv(newfd, buf, sizeof(buf), 0) < 0)
+            {
+                    perror("recv");
+                    exit(EXIT_FAILURE);
+            }
+
+            if( buf != NULL )
+            {
+                if ( sscanf ( buf, "%s %s %s", method, url, protocol ) != 1 )
+                {
+
+                    if( ( strcmp( method, "GET" ) == 0 ) && ( strcmp( url, "/favicon.ico" ) != 0 ) )
+                    {
+
+                        printf("%s %s %s\n",protocol, method, url);
+                        pthread_mutex_lock(&notify_mutex);
+                        wait_for_cmd = 0;
+                        request = replace(replace(url, "+", " "), "/", " ");
+                        printf("request: %s\n",request);
+                        pthread_cond_signal(&notify_cond);
+                    }
                 }
-
-
-                if (recv(newfd, buf, sizeof(buf), 0) < 0) {
-                        perror("recv");
-                        exit(EXIT_FAILURE);
-                }
-
-               sscanf(buf, "%s %s %s", method, url, protocol);
-
-                /// request body
-                do {
-                        if (strstr(buf, "\r\n\r\n")) {
-                                break;
-                        }
-                        if (strlen(buf) >= sizeof(buf)) {
-                                memset(&buf, 0, sizeof(buf));
-                        }
-                } while (recv(newfd, buf+strlen(buf), sizeof(buf) - strlen(buf), 0) > 0);
-
-
-
-
-            pthread_mutex_lock(&notify_mutex);
-            wait_for_cmd = 0;
-            request = replace(url);
-            pthread_cond_signal(&notify_cond);
+            }
         }
         return NULL;
 }
@@ -157,25 +184,29 @@ static void *socketreciver(void *sock)
 /**
  *
  */
-long startListner(){
+long startListner()
+{
 
     int port;
     if(!DPORT)
         port = PORT;
-    else port = DPORT;
+    else
+        port = DPORT;
 
     long socketfd;
 
     printf("Listening on port %d\n", port);
 
-    if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
             perror("socket");
             exit(EXIT_FAILURE);
     }
 
     /// Set the socket and reuse
     int opt = 1;
-    if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0){
+    if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+    {
         perror("setsockopt failed");
         exit(EXIT_FAILURE);
     }
@@ -187,16 +218,16 @@ long startListner(){
     server.sin_addr.s_addr = INADDR_ANY;
     server.sin_port = htons(port);
 
-
-
     /// Bind the port
-    if (bind(socketfd, (struct sockaddr *) &server, sizeof(server)) < 0) {
+    if (bind(socketfd, (struct sockaddr *) &server, sizeof(server)) < 0)
+    {
             perror("bind");
             exit(EXIT_FAILURE);
     }
 
     /// And also listen
-    if (listen(socketfd, SOMAXCONN) < 0) {
+    if (listen(socketfd, SOMAXCONN) < 0)
+    {
             perror("listen");
             exit(EXIT_FAILURE);
     }
@@ -237,7 +268,9 @@ int main(int argc, char **argv)
     int c;
 
     while ((c = getopt (argc, argv, "p:")) != -1)
-        switch (c){
+    {
+        switch (c)
+        {
             case 'p':
                 DPORT = atoi(optarg);
                 break;
@@ -252,6 +285,7 @@ int main(int argc, char **argv)
             default:
                 abort ();
         }
+    }
 
     /// clean all the dead processes
     struct sigaction sigIntHandler;
@@ -260,7 +294,8 @@ int main(int argc, char **argv)
     sigemptyset(&sigIntHandler.sa_mask);
     sigIntHandler.sa_flags = 0;
 
-    if(sigaction(SIGINT, &sigIntHandler, NULL) == -1){
+    if(sigaction(SIGINT, &sigIntHandler, NULL) == -1)
+    {
             perror("Server-sigaction() error");
             exit(1);
     }
@@ -273,56 +308,63 @@ int main(int argc, char **argv)
     pthread_cond_init(&prompt_cond, NULL);
 
     if ((r = spshell_init(USERNAME, PASSWORD)) != 0)
-            exit(r);
+        exit(r);
 
     pthread_mutex_lock(&notify_mutex);
 
     /// Mysql connection initatition
 #ifdef USE_MYSQL
-
     g_conn = _mysql_connect();
 
-    if(!g_conn){
+    if(!g_conn)
+    {
         printf("Failed to set mysql connection!\n");
         exit(1);
     }
-
 #endif
-    while(!is_logged_out) {
+    while(!is_logged_out)
+    {
             /// Release prompt
 
-            if (next_timeout == 0) {
+            if (next_timeout == 0)
+            {
                     while(!notify_events && !request)
-                            pthread_cond_wait(&notify_cond, &notify_mutex);
-            } else {
+                        pthread_cond_wait(&notify_cond, &notify_mutex);
+            }
+            else
+            {
+                struct timespec ts;
+                clock_gettime(CLOCK_REALTIME, &ts);
 
-                    struct timespec ts;
-                    clock_gettime(CLOCK_REALTIME, &ts);
+                ts.tv_sec += next_timeout / 1000;
+                ts.tv_nsec += (next_timeout % 1000) * 1000000;
 
-                    ts.tv_sec += next_timeout / 1000;
-                    ts.tv_nsec += (next_timeout % 1000) * 1000000;
-
-                    while(!notify_events && !request) {
-                            if(pthread_cond_timedwait(&notify_cond, &notify_mutex, &ts))
-                                    break;
-                    }
+                while(!notify_events && !request)
+                {
+                        if(pthread_cond_timedwait(&notify_cond, &notify_mutex, &ts))
+                            break;
+                }
             }
 
             /// Process input from request
-            if(request) {
-                    char *l = request;
+            if(request)
+            {
+                    char *l= request;
                     request = NULL;
                     pthread_mutex_unlock(&notify_mutex);
                     cmd_exec_unparsed(l);
                     pthread_mutex_lock(&notify_mutex);
+                    free(l);
             }
 
             /// Process libspotify events
             notify_events = 0;
             pthread_mutex_unlock(&notify_mutex);
 
-            do {
-                    sp_session_process_events(g_session, &next_timeout);
+            do
+            {
+                sp_session_process_events(g_session, &next_timeout);
+
             } while (next_timeout == 0);
 
             pthread_mutex_lock(&notify_mutex);
@@ -338,12 +380,15 @@ int main(int argc, char **argv)
 }
 
 /**
- *
+ * setHeader(int code)
+ * set the header to respective err code
  */
-char *setHeader(int code){
+char *setHeader(int code)
+{
 
     char *header;
-    switch(code){
+    switch(code)
+    {
         case 200: header = STATUS_OK;
         break;
         case 400: header = STATUS_ERR;
@@ -358,39 +403,58 @@ char *setHeader(int code){
 
 }
 
-void cmd_sendresponse(json_t *json, int code){
+/**
+ * cmd_sendresponse(json_t *resp, int code);
+ * we need to send the response back to the httpd
+ *
+ */
 
+void cmd_sendresponse(json_t *json, int code)
+{
 
     char *response = json_dumps(json, JSON_COMPACT);
     json_decref(json);
 
-        /// this is the child process
-        if(!fork()){
+    /// this is the child process
+    if(!fork())
+    {
 
+        int rc;
+        // Send HTTP Status header
+        char *header = setHeader(code);
+        send(newfd, header, strlen(header), 0);
 
-                struct sockaddr_in server;
-                /// child doesn’t need the listener
-                //close(sockfd);
-                char *header = setHeader(code);
-                send(newfd, header, strlen(header), 0);
-                char *jsonheader = JSON;
-                 send(newfd,jsonheader, strlen(jsonheader), 0);
-                int bytes_sent;
-                bytes_sent = sendto(newfd, response, strlen(response), 0,(struct sockaddr*)&server, sizeof server);
-                if (bytes_sent < 0) {
-                   printf("Error sending packet: %s\n", strerror(errno));
+        // Send JSON Header
+        char *jsonheader = JSON;
+        send(newfd,jsonheader, strlen(jsonheader), 0);
 
-               };
+        // Send the Response
+        do
+        {
+            if(response != NULL)
+            {
+                rc = send(newfd, response, strlen(response),0);
+                    if (rc == -1)
+                    {
+                        printf("Fail to send to server %s\n", strerror(errno));
+                        break;
+                    }
+            }
 
-                close(newfd);
-                exit(0);
-        }else
-             close(newfd);
+        } while (rc <= 0);
 
+        close(newfd);
+        exit(0);
+    }
+    else
+    {
+        close(newfd);
+    }
 }
 
 /**
- *
+ * Cmd done
+ * notifys that the commands is finnished, back to wait_for_cmd
  */
 void cmd_done(void)
 {
