@@ -168,11 +168,11 @@ static void *socketreciver(void *sock)
                     if( ( strcmp( method, "GET" ) == 0 ) && ( strcmp( url, "/favicon.ico" ) != 0 ) )
                     {
 
-                        printf("%s %s %s\n",protocol, method, url);
+                        //printf("%s %s %s\n",protocol, method, url);
                         pthread_mutex_lock(&notify_mutex);
                         wait_for_cmd = 0;
                         request = replace(replace(url, "+", " "), "/", " ");
-                        printf("request: %s\n",request);
+                        //printf("request: %s\n",request);
                         pthread_cond_signal(&notify_cond);
                     }
                 }
