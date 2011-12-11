@@ -36,11 +36,11 @@ struct {
         const char *notes;
 } commands[] = {
 
-{ "browse",	cmd_browse,"Browse a Spotify URI","/browse/<spotify-uri>", ""},
-{ "albums",	cmd_albums,"Get all albums from a Spotify URI","/albums/<spotify-uri>", ""},
-{ "search",	cmd_search,"Search","/search/<query-string>", "Replace spaces with +"},
-{ "help",  	cmd_help,  "help", "/help", ""},
-{ "toplist",    cmd_toplist,"Browse toplists", "/toplist/tracks | albums | artists/ global | region <countrycode> | user" },
+{ "browse",	cmd_browse,"Browse a Spotify URI","/browse/<spotify-uri>", "Exampe: /browse/spotify:uri:to:playlist"},
+{ "albums",	cmd_albums,"Get all albums from a Spotify URI","/albums/<spotify-uri>", "Example: /albums/spotify:uri:to:artist"},
+{ "search",	cmd_search,"Search","/search/<query-string>", "Example: /search/artist:Madonna track:Like A Prayer"},
+{ "help",  	cmd_help,  "help", "/help", "This help message."},
+{ "toplist",    cmd_toplist,"Browse toplists", "/toplist/tracks | albums | artists/ global | region <countrycode> | user", "Example: /toplist/tracks/USERNAME" },
 
 };
 

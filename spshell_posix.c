@@ -25,6 +25,7 @@
 #include <signal.h>
 #include <wait.h>
 #include "spshell.h"
+#include <locale.h>
 #include "cmd.h"
 #ifdef USE_MYSQL
     #include "mysql.h"
@@ -119,6 +120,40 @@ char * replace( char const * const original, char const * const pattern, char co
   }
 }
 
+/* Converts a hex character to its integer value */
+char from_hex(char ch) {
+  return isdigit(ch) ? ch - '0' : tolower(ch) - 'a' + 10;
+}
+
+/* Returns a url-decoded version of str */
+/* IMPORTANT: be sure to free() the returned string after use */
+char *url_decode(char *str)
+{
+    char *pstr = str, *buf = malloc(strlen(str) + 1), *pbuf = buf;
+    while (*pstr) {
+        if (*pstr == '%')
+        {
+            if (pstr[1] && pstr[2])
+            {
+                *pbuf++ = from_hex(pstr[1]) << 4 | from_hex(pstr[2]);
+                pstr += 2;
+            }
+        }
+        else if (*pstr == '+')
+        {
+            *pbuf++ = ' ';
+        }
+        else
+        {
+            *pbuf++ = *pstr;
+        }
+        pstr++;
+    }
+    *pbuf = '\0';
+ return buf;
+}
+
+
 /**
  * socketreciver waits for a new request and
  * executes it.
@@ -142,6 +177,7 @@ static void *socketreciver(void *sock)
             char method[BUF_SIZE] = "";
             char url[BUF_SIZE] = "";
             char protocol[BUF_SIZE] = "";
+
 
             socklen_t len;
             memset(&client, 0, sizeof(client));
@@ -167,16 +203,16 @@ static void *socketreciver(void *sock)
 
                     if( ( strcmp( method, "GET" ) == 0 ) && ( strcmp( url, "/favicon.ico" ) != 0 ) )
                     {
-
                         //printf("%s %s %s\n",protocol, method, url);
                         pthread_mutex_lock(&notify_mutex);
                         wait_for_cmd = 0;
-                        request = replace(replace(url, "+", " "), "/", " ");
+                        request = replace(url_decode( url ), "/", " ");
                         //printf("request: %s\n",request);
                         pthread_cond_signal(&notify_cond);
                     }
                 }
             }
+
         }
         return NULL;
 }
@@ -261,6 +297,7 @@ void start_recv(void)
  */
 int main(int argc, char **argv)
 {
+
 
     /// @todo, Implement Verbose and Debug options
     /// Currently supports setting custom port, -p PORT

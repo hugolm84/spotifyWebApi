@@ -65,7 +65,7 @@ static void search_complete(sp_search *search, void *userdata)
  */
 static void search_usage(void)
 {
-        cmd_sendresponse(put_error(400, "Usage: search <query>"), 400);
+        cmd_sendresponse(put_error(400, "Usage: search <query> Example: /search/artist:Madonna track:Like a prayer"), 400);
 }
 
 
