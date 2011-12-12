@@ -22,6 +22,11 @@
 #include "spshell.h"
 #include "cmd.h"
 
+#ifdef USE_MYSQL
+extern MYSQL* g_conn;
+extern int _mysql_updateStats(MYSQL *, char*);
+#endif
+
 extern json_t *get_track(sp_track *track);
 
 /**
@@ -86,7 +91,9 @@ int cmd_search(int argc, char **argv)
         for(i = 1; i < argc; i++)
                 snprintf(query + strlen(query), sizeof(query) - strlen(query), "%s%s",
                          i == 1 ? "" : " ", argv[i]);
-
+#ifdef USE_MYSQL
+                _mysql_updateStats(g_conn, "search");
+#endif
         sp_search_create(g_session, query, 0, 100, 0, 100, 0, 100, &search_complete, NULL);
         return 0;
 }

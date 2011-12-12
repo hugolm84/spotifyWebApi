@@ -59,6 +59,12 @@ extern int is_logged_out;
 /**
  * Sighandler
  */
+
+void sigcleaner(int s)
+{
+    while(wait(NULL) > 0);
+}
+
 void sigchld_handler(int s)
 {
     sp_session_logout(g_session);
@@ -230,6 +236,17 @@ long startListner()
         port = DPORT;
 
     long socketfd;
+
+    /// clean all the dead processes
+    struct sigaction sa;
+    sa.sa_handler = sigcleaner;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+
+    if(sigaction(SIGCHLD, &sa, NULL) == -1){
+        perror("Server-sigaction() error");
+        exit(1);
+    }
 
     printf("Listening on port %d\n", port);
 

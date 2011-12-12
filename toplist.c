@@ -171,6 +171,10 @@ int cmd_toplist(int argc, char **argv)
 		toplist_usage();
 		return -1;
         }
+        
+#ifdef USE_MYSQL
+                _mysql_updateStats(g_conn, "toplist");
+#endif        
 
         sp_toplistbrowse_create(g_session, type, region, username, got_toplist, NULL);
 	return 0;
