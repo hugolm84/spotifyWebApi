@@ -212,7 +212,7 @@ static void browse_album_callback(sp_albumbrowse *browse, void *userdata)
 	cmd_done();
 }
 
-static int comp(const void* p1, const void* p2) {
+int comp(const void* p1, const void* p2) {
 
   int* arr1 = (int*)p2;
   int* arr2 = (int*)p1;

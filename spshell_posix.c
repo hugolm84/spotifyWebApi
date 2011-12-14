@@ -232,6 +232,21 @@ static void *socketreciver(void *sock)
 long startListner()
 {
 
+
+    int loaded = 0;
+    while( !loaded )
+    {
+        loaded = 1;
+        if(!cmd_load_container())
+            loaded = 0;
+        printf("Loading container...\n");
+    }
+
+    if( loaded )
+        printf("Container loaded\n");
+    else
+        printf("Failed to load container... Will function anyhow\n");
+
     int port;
     if(!DPORT)
         port = PORT;
@@ -302,6 +317,8 @@ void start_recv(void)
         long socketfd;
         if (id)
                 return;
+
+
 
         /// Start the listner
         socketfd = startListner();

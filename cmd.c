@@ -41,8 +41,10 @@ struct {
 { "search",	cmd_search,"Search","/search/<query-string>", "Example: /search/artist:Madonna track:Like A Prayer"},
 { "help",  	cmd_help,  "help", "/help", "This help message."},
 { "toplist",cmd_toplist,"Browse toplists", "/toplist/tracks | albums | artists/ global | region <countrycode> | user", "Example: /toplist/tracks/USERNAME" },
-{ "pong",   cmd_pong,"Ping this service and get a pong if online", "/pong", "Example: /pong" }
-
+{ "pong",   cmd_pong,"Ping this service and get a pong if online", "/pong", "Example: /pong" },
+{ "add",    cmd_playlist_add_track, "Add track to playlist"},
+{ "create", cmd_create_playlist, "Create a playlist"},
+{ "searchTopTrack",	cmd_searchTopTrack,"SearchTopTrack","/searchtoptrack/<query-string>", "Example: /searchtoptrack/artist:Madonna track:Like A Prayer"},
 };
 
 

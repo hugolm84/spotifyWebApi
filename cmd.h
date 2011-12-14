@@ -28,8 +28,12 @@ extern void cmd_done(void);
 extern int cmd_albums(int argc, char **argv);
 extern int cmd_browse(int argc, char **argv);
 extern int cmd_search(int argc, char **argv);
+extern int cmd_searchTopTrack(int argc, char **argv);
 extern int cmd_toplist(int argc, char **argv);
 extern int cmd_pong(int argc, char **argv);
+extern int cmd_playlist_add_track(int argc, char **argv);
+extern int cmd_create_playlist(int argc, char **argv);
+extern int cmd_load_container();
 /* Shared functions */
 extern void cmd_sendresponse(json_t *resp, int code);
 void browse_playlist(sp_playlist *pl);
@@ -37,7 +41,7 @@ extern json_t *get_track(sp_track *track);
 extern json_t *get_artist(sp_artist *artist);
 extern json_t *get_album(sp_album *album);
 extern json_t *put_error(int code, const char *error);
-
+extern int comp(const void* p1, const void* p2);
 
 
 #endif // CMD_H__
