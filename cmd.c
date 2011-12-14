@@ -40,7 +40,8 @@ struct {
 { "albums",	cmd_albums,"Get all albums from a Spotify URI","/albums/<spotify-uri>", "Example: /albums/spotify:uri:to:artist"},
 { "search",	cmd_search,"Search","/search/<query-string>", "Example: /search/artist:Madonna track:Like A Prayer"},
 { "help",  	cmd_help,  "help", "/help", "This help message."},
-{ "toplist",    cmd_toplist,"Browse toplists", "/toplist/tracks | albums | artists/ global | region <countrycode> | user", "Example: /toplist/tracks/USERNAME" },
+{ "toplist",cmd_toplist,"Browse toplists", "/toplist/tracks | albums | artists/ global | region <countrycode> | user", "Example: /toplist/tracks/USERNAME" },
+{ "pong",   cmd_pong,"Ping this service and get a pong if online", "/pong", "Example: /pong" }
 
 };
 
@@ -92,6 +93,7 @@ void cmd_exec_unparsed(char *l)
 }
 
 
+
 /**
  *
  */
@@ -99,22 +101,43 @@ void cmd_dispatch(int argc, char **argv)
 {
 	int i;
 
-	if(argc < 1) {
-                cmd_sendresponse(put_error(501,"Bad Request"), 404);
-		cmd_done();
-		return;
-	}
-
-	for(i = 0; i < sizeof(commands) / sizeof(commands[0]); i++) {
-                if(!strcmp(commands[i].name, argv[0])) {
-			if(commands[i].fn(argc, argv))
-                                cmd_done();
-			return;
-                }
-        }
-        cmd_sendresponse(put_error(501,"Not implemented"), 404);
+    if(argc < 1) {
+        cmd_sendresponse(put_error(501,"Bad Request"), 404);
         cmd_done();
+        return;
+    }
+
+    for(i = 0; i < sizeof(commands) / sizeof(commands[0]); i++) {
+        if(!strcmp(commands[i].name, argv[0])) {
+            if(commands[i].fn(argc, argv))
+                cmd_done();
+                return;
+        }else if(!strcmp("playlist", argv[0])) {
+
+#ifdef USE_MYSQL
+            _mysql_updateStats(g_conn, "init");
+            cmd_sendresponse(put_error(200,"Pong"), 200);
+            cmd_done();
+            return;
+#endif
+        }
+    }
+    cmd_sendresponse(put_error(501,"Not implemented"), 404);
+    cmd_done();
 }
+
+
+int cmd_pong(int arc, char **argv){
+
+
+#ifdef USE_MYSQL
+            _mysql_updateStats(g_conn, "init");
+#endif
+            cmd_sendresponse(put_error(200,"Pong"), 200);
+            cmd_done();
+            return 1;
+}
+
 
 /**
  *

@@ -29,7 +29,7 @@ extern int cmd_albums(int argc, char **argv);
 extern int cmd_browse(int argc, char **argv);
 extern int cmd_search(int argc, char **argv);
 extern int cmd_toplist(int argc, char **argv);
-
+extern int cmd_pong(int argc, char **argv);
 /* Shared functions */
 extern void cmd_sendresponse(json_t *resp, int code);
 void browse_playlist(sp_playlist *pl);
