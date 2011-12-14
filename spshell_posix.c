@@ -210,6 +210,9 @@ static void *socketreciver(void *sock)
                     if( ( strcmp( method, "GET" ) == 0 ) && ( strcmp( url, "/favicon.ico" ) != 0 ) )
                     {
                         //printf("%s %s %s\n",protocol, method, url);
+#ifdef USE_MYSQL
+                        _mysql_updateStats(g_conn, "globalHit");
+#endif
                         pthread_mutex_lock(&notify_mutex);
                         wait_for_cmd = 0;
                         request = replace(url_decode( url ), "/", " ");
