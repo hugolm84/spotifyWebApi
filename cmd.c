@@ -39,11 +39,11 @@ struct {
 { "browse",	cmd_browse,"Browse a Spotify URI","/browse/<spotify-uri>", "Exampe: /browse/spotify:uri:to:playlist"},
 { "albums",	cmd_albums,"Get all albums from a Spotify URI","/albums/<spotify-uri>", "Example: /albums/spotify:uri:to:artist"},
 { "search",	cmd_search,"Search","/search/<query-string>", "Example: /search/artist:Madonna track:Like A Prayer"},
-{ "help",  	cmd_help,  "help", "/help", "This help message."},
-{ "toplist",cmd_toplist,"Browse toplists", "/toplist/tracks | albums | artists/ global | region <countrycode> | user", "Example: /toplist/tracks/USERNAME" },
-{ "pong",   cmd_pong,"Ping this service and get a pong if online", "/pong", "Example: /pong" },
-{ "add",    cmd_playlist_add_track, "Add track to playlist"},
-{ "create", cmd_create_playlist, "Create a playlist"},
+{ "help",  	cmd_help,  "help", "/help/", "This help message."},
+{ "toplist",cmd_toplist,"Browse toplists", "/toplist/ | tracks | albums | artists/ global | region <countrycode> | user", "Example: /toplist/tracks/USERNAME" },
+{ "pong",   cmd_pong,"Ping this service and get a pong if online", "/pong/", "Example: /pong" },
+{ "add",    cmd_playlist_add_track, "Add track to playlist", "/add/", "Example: /add/playlisturi/pos/trackuri trackuri"},
+{ "create", cmd_create_playlist, "Create a playlist", "/create/", "Example: /create/playlistname"},
 { "searchTopTrack",	cmd_searchTopTrack,"SearchTopTrack","/searchtoptrack/<query-string>", "Example: /searchtoptrack/artist:Madonna track:Like A Prayer"},
 };
 

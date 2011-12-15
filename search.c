@@ -55,8 +55,13 @@ static void getTop_search(sp_search *search)
         json_t *json = json_object();
 
         json_t *tracks = json_array();
-        json_object_set_new(json, "tracks", tracks);
+        json_object_set_new(json, "track", tracks);
 
+        json_t *artist = json_array();
+        json_object_set_new(json, "artist", artist);
+
+        json_t *album = json_array();
+        json_object_set_new(json, "album", album);
 
         /**
         * So maybe we dont want all tracks, just the top
@@ -91,9 +96,12 @@ static void getTop_search(sp_search *search)
          **/
         qsort(trackArray, k, 2*sizeof(int), comp);
         j = 0;
-        for(i = 0; i < k; i++){
+        int limit = 1;
+        for(i = 0; i < limit; i++){
 
                 json_array_append_new(tracks, get_track(sp_search_track(search, trackArray[i][0])));
+                json_array_append_new(album, get_album(sp_track_album(sp_search_track(search, trackArray[i][0]))));
+                json_array_append_new(artist, get_artist(sp_track_artist(sp_search_track(search, trackArray[i][0]),0)));
                 j++;
             }
 
