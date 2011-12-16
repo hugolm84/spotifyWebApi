@@ -1,6 +1,6 @@
 TARGET=spshell
 LDLIBS += -ljansson -lmysqlclient -lpthread -lrt
-CFLAGs += -Werror
+CFLAGs += -Werror -g spshell.c spshell_posix.c appkey.c toplist.c cmd.o browse.c playlist.c search.c mysql.c
 
 
 $(TARGET): spshell.o spshell_posix.o appkey.o toplist.o cmd.o browse.o playlist.o search.o mysql.o

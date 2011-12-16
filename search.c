@@ -98,10 +98,24 @@ static void getTop_search(sp_search *search)
         j = 0;
         int limit = 1;
         for(i = 0; i < limit; i++){
-
+            /// Avoid segfault. Some tracks are wierd
+            sp_track * tTrack;
+            if(!trackArray[i])
+            {
+                continue;
+            }
+            else
+            {
+                tTrack = sp_search_track(search, trackArray[i][0]);
+                if(!tTrack)
+                {
+                    continue;
+                }
+            }
                 json_array_append_new(tracks, get_track(sp_search_track(search, trackArray[i][0])));
                 json_array_append_new(album, get_album(sp_track_album(sp_search_track(search, trackArray[i][0]))));
                 json_array_append_new(artist, get_artist(sp_track_artist(sp_search_track(search, trackArray[i][0]),0)));
+
                 j++;
             }
 

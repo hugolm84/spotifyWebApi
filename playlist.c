@@ -247,7 +247,7 @@ int cmd_playlist_add_track(int argc, char **argv)
     {
         for(k = 0; k < sp_playlist_num_tracks(pl); k++)
         {
-		
+
 			l = sp_link_create_from_track(sp_playlist_track(pl, k), 0);
 			sp_link_as_string(l, url, sizeof(url));
 			sp_link_release(l);

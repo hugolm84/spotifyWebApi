@@ -67,6 +67,7 @@ const char *imagelink(sp_image *image){
 json_t *get_track(sp_track *track)
 {
 
+
     char url[256];
     sp_link *l;
     l = sp_link_create_from_track(track, 0);
