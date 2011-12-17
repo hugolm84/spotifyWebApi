@@ -38,9 +38,33 @@ static void get_search(sp_search *search)
         json_t *json = json_object();
 
         json_t *tracks = json_array();
-        json_object_set_new(json, "tracks", tracks);
+        json_object_set_new(json, "track", tracks);
+
+        json_t *artist = json_array();
+        json_object_set_new(json, "artist", artist);
+
+        json_t *album = json_array();
+        json_object_set_new(json, "album", album);
+
         for (i = 0; i < sp_search_num_tracks(search); ++i){
+            /// Avoid segfault. Some tracks are wierd
+            sp_track * tTrack;
+            if(!sp_search_track(search, i))
+            {
+                continue;
+            }
+            else
+            {
+                tTrack = sp_search_track(search, i);
+                if(!tTrack)
+                {
+                    continue;
+                }
+            }
             json_array_append_new(tracks, get_track(sp_search_track(search, i)));
+            json_array_append_new(album, get_album(sp_track_album(sp_search_track(search, i))));
+            json_array_append_new(artist, get_artist(sp_track_artist(sp_search_track(search, i),0)));
+
         }
         json_object_set_new_nocheck(json, "query", json_string_nocheck(sp_search_query(search)));
         cmd_sendresponse(json, 200);

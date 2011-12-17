@@ -60,7 +60,6 @@ static sp_playlistcontainer_callbacks pc_callbacks = {
 
 int cmd_load_container(){
 
-    int i;
     sp_playlistcontainer *pc = sp_session_playlistcontainer(g_session);
     sp_playlistcontainer_add_callbacks(pc,&pc_callbacks,NULL);
 

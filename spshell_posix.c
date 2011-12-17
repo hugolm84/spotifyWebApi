@@ -236,10 +236,11 @@ long startListner()
     int loaded = 0;
     while( !loaded )
     {
+        printf("Loading container...\n");
         loaded = 1;
         if(!cmd_load_container())
             loaded = 0;
-        printf("Loading container...\n");
+
     }
 
     if( loaded )
