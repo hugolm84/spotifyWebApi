@@ -14,7 +14,7 @@
  */
 #ifndef MYSQL_H__
 #define MYSQL_H__
-#include <mysql/mysql.h>
+#include <mysql.h>
 /// pointer to global connection, initate in thread
 MYSQL *g_conn;
 MYSQL *_mysql_connect();
