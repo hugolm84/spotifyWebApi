@@ -17,15 +17,30 @@
  *   The above copyright notice and this permission notice shall be included in
  *   all copies or substantial portions of the Software.
  */
+
 #include <unistd.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
-#include <signal.h>
-#include <wait.h>
+#include <signal.h>	
 #include "spshell.h"
 #include <locale.h>
+
+/* Provide clock_gettime() emulation using gettimeofday on OSX */
+#ifdef __APPLE__
+    #define CLOCK_REALTIME 0
+    int clock_gettime(int clkid, struct timespec *ts)
+    {
+        struct timeval tv;
+        int ret = gettimeofday(&tv, 0);
+        (void)clkid;
+        TIMEVAL_TO_TIMESPEC(&tv, ts);
+        return ret;
+    }
+#else
+    #include <wait.h>
+#endif
 #include "cmd.h"
 #ifdef USE_MYSQL
     #include "mysql.h"
