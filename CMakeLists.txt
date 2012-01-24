@@ -27,5 +27,10 @@ target_link_libraries(spshell
     ${JANSSON_LIBRARIES}
     ${LIBMYSQLCLIENT_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
-    rt # how do you do this the cmake way?!
 )
+
+if(UNIX AND NOT APPLE)
+    target_link_libraries(spshell
+        rt
+    )
+endif()
