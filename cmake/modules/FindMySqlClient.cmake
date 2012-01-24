@@ -1,5 +1,5 @@
 
-find_path(LIBMYSQLCLIENT_INCLUDE_DIR mysql/mysql_time.h)
+find_path(LIBMYSQLCLIENT_INCLUDE_DIR mysql_time.h PATH_SUFFIXES mysql)
 find_library(LIBMYSQLCLIENT_LIBRARY NAMES mysqlclient mysqlclient_r)
 
 include(FindPackageHandleStandardArgs)

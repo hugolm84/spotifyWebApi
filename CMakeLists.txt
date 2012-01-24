@@ -9,7 +9,7 @@ find_package(Jansson REQUIRED)
 find_package(MySqlClient REQUIRED)
 find_package(Threads REQUIRED)
 
-include_directories(${LIBSPOTIFY_INCLUDE_DIR})
+include_directories(${LIBSPOTIFY_INCLUDE_DIR} ${LIBMYSQLCLIENT_INCLUDE_DIR} ${JANSSON_INCLUDE_DIR})
 
 add_executable(spshell
     appkey.c
@@ -27,5 +27,10 @@ target_link_libraries(spshell
     ${JANSSON_LIBRARIES}
     ${LIBMYSQLCLIENT_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
-    rt # how do you do this the cmake way?!
 )
+
+if(UNIX AND NOT APPLE)
+    target_link_libraries(spshell
+        rt
+    )
+endif()
