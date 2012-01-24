@@ -56,8 +56,9 @@
 //#define USE_MYSQL
 
 #ifdef USE_MYSQL
+    // this is really bad
     #include "mysql.h"
-    #include <mysql/mysql.h>
+    #include <mysql.h>
     extern MYSQL *g_conn;
 #endif
 
