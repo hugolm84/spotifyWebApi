@@ -409,6 +409,7 @@ static void playlist_browse_try(void)
 {
         int i, tracks;
         
+        printf("Trying to load playlist, try %d\n", try_count++);
         if(try_count > 5){
             printf("Try failed\n");
             sp_playlist_remove_callbacks(playlist_browse, &pl_callbacks, NULL);
