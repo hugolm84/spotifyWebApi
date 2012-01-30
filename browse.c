@@ -393,7 +393,14 @@ static void track_browse_try(void)
 
 }
 
-
+/**
+ A really bad way of testing faulty unsycned playlists.
+ Will try for 5 times, after that abort.
+ Playlists will probably be tried atleast 3 times, and fast.
+ Faulty playlists will be slow to look up. This should be using a
+ timer instead!
+ */
+static int try_count;
 
 /**
  *
@@ -401,12 +408,24 @@ static void track_browse_try(void)
 static void playlist_browse_try(void)
 {
         int i, tracks;
-
+        
+        if(try_count > 5){
+            printf("Try failed\n");
+            sp_playlist_remove_callbacks(playlist_browse, &pl_callbacks, NULL);
+            sp_playlist_release(playlist_browse);
+            cmd_sendresponse(put_error(500,"Failed to load playlist after trying 5 times!"), 500);
+            cmd_done();
+            // Reset the count
+            try_count = 0;
+            return;
+        }
         metadata_updated_fn = playlist_browse_try;
         if(!sp_playlist_is_loaded(playlist_browse)) {
                 return;
         }
-
+        printf("Try successfull after &d tries!\n", try_count);
+        // Reset the count
+        try_count = 0;
         tracks = sp_playlist_num_tracks(playlist_browse);
         for(i = 0; i < tracks; i++) {
                 sp_track *t = sp_playlist_track(playlist_browse, i);
