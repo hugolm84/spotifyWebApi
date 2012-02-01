@@ -1,6 +1,7 @@
 # spotifyWebApi
-Modified and further developed code based on Spotifys spshell example.
-I would love to get any thoughts on makeing this more threaded, but consider that libspotify only supports one session per process...
+This api server will serve the most of the supported api functions that libspotify offers. All responses will be in json format.
+To get functions to create and add tracks to playlists, use the addCreate branch.
+Note: This is modified and further developed code based on Spotifys spshell example.
 
 ## Supported API methods
     GET /help
@@ -20,6 +21,13 @@ I would love to get any thoughts on makeing this more threaded, but consider tha
 
 1. Update `spshell.h` with your credentials. A *Spotify premium account is necessary*.
 
-1. Copy `appkey.c` into the directory and run `make`.
+1. Copy `appkey.c` into the directory and run `cmake ..`.
+
+1. Build commands
+  * mkdir build && cd build
+  * cmake .. 
+  * make
+  If you have mysql installed but wish not to use it, run
+  * cmake -DCMAKE_DISABLE_IND_PACKAGE_MySqlClient=TRUE ..
 
 1. run ./spshell -p PORT or just ./spshell to run on default port, 5112
