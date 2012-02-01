@@ -1,4 +1,4 @@
-/**  This file is part of SpotifyWebApi - <hugolm84@gmail.com> ===
+    /**  This file is part of SpotifyWebApi - <hugolm84@gmail.com> ===
  *
  *   Copyright 2011,Hugo Lindström <hugolm84@gmail.com>
  *
@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef USE_MYSQL
 extern MYSQL* g_conn;
@@ -362,21 +363,19 @@ static void browse_artistalbums_callback(sp_artistbrowse *browse, void *userdata
  */
 static void track_browse_try(void)
 {
-        json_t *json = json_object();
-        int ok;
-        switch (sp_track_error(track_browse)) {
-	case SP_ERROR_OK:
+    json_t *json = json_object();
+    int ok;
+    switch (sp_track_error(track_browse)) {
+        case SP_ERROR_OK:
                 ok = 1;
-		break;
-
-	case SP_ERROR_IS_LOADING:
-		return; // Still pending
-
-	default:
+                break;
+        case SP_ERROR_IS_LOADING:
+                return; // Still pending
+        default:
                 cmd_sendresponse(put_error(400,sp_error_message(sp_track_error(track_browse))), 400);
-		break;
+                break;
 	}
-        if(ok){
+    if(ok){
 
             json_t *track = json_object();
             json_object_set_new(json, "type", json_string_nocheck("track"));
@@ -386,47 +385,63 @@ static void track_browse_try(void)
             json_array_append_new(result, get_track(track_browse));
 
             cmd_sendresponse(json, 200);
-        }
+    }
 	metadata_updated_fn = NULL;
-        sp_track_release(track_browse);
+    sp_track_release(track_browse);
 	cmd_done();
 
 }
 
 /**
  A really bad way of testing faulty unsycned playlists.
- Will try for 5 times, after that abort.
+ Will try for n seconds, after that abort.
  Playlists will probably be tried atleast 3 times, and fast.
- Faulty playlists will be slow to look up. This should be using a
- timer instead!
+ Faulty playlists will be slow to look up. Thus its using a timer
  */
+
 static int try_count;
+const int timeout_length = 3;  // seconds
+time_t start, stop;
 
 /**
  *
  */
-static void playlist_browse_try(void)
+static void playlist_browse_try()
 {
         int i, tracks;
-        
-        printf("Trying to load playlist, try %d\n", try_count++);
-        if(try_count > 5){
+        // Stop the timer
+        time(&stop);
+        // Increase the count
+        try_count++;
+
+        if(start != 0 && difftime(stop, start) > timeout_length) {
+    
             printf("Try failed\n");
+            char* msg = malloc(100);
+            sprintf(msg, "Process count: %d, Request length: %f seconds", try_count, difftime(stop, start));
+                       
             sp_playlist_remove_callbacks(playlist_browse, &pl_callbacks, NULL);
             sp_playlist_release(playlist_browse);
-            cmd_sendresponse(put_error(500,"Failed to load playlist after trying 5 times!"), 500);
+            
+            cmd_sendresponse(put_error(500, msg), 500);
             cmd_done();
+            
             // Reset the count
             try_count = 0;
+            start = 0;
+            free(msg);
             return;
         }
+
         metadata_updated_fn = playlist_browse_try;
+    
         if(!sp_playlist_is_loaded(playlist_browse)) {
                 return;
         }
-        printf("Try successfull after &d tries!\n", try_count);
-        // Reset the count
-        try_count = 0;
+        
+        // OK, successfully loaded playlist, within time!
+
+        // Start Process
         tracks = sp_playlist_num_tracks(playlist_browse);
         for(i = 0; i < tracks; i++) {
                 sp_track *t = sp_playlist_track(playlist_browse, i);
@@ -463,6 +478,10 @@ static void playlist_browse_try(void)
         playlist_browse = NULL;
         metadata_updated_fn = NULL;
 
+        // Reset the timers
+        start = 0;
+        try_count = 0;
+    
         cmd_sendresponse(json, 200);
         cmd_done();
 
@@ -488,7 +507,9 @@ static sp_playlist_callbacks pl_callbacks = {
 
 
 void browse_playlist(sp_playlist *pl)
-{
+{   
+        // To guard against never loading playlists, set a timer    
+        time(&start);
         playlist_browse = pl;
         sp_playlist_add_callbacks(playlist_browse, &pl_callbacks, NULL);
         playlist_browse_try();
