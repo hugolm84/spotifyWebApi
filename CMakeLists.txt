@@ -30,7 +30,7 @@ set(spotifyWebApi_LINK_LIBRARIES
 
 if(LIBMYSQLCLIENT_FOUND)
     include_directories(${LIBMYSQLCLIENT_INCLUDE_DIR})
-    list(APPEND spotifyWebApi_SOURCES mysql.c)
+    list(APPEND spotifyWebApi_SOURCES sp_mysql.c)
     list(APPEND spotifyWebApi_LINK_LIBRARIES ${LIBMYSQLCLIENT_LIBRARIES})
     add_definitions( -DUSE_MYSQL )
 endif()
