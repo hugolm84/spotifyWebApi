@@ -17,7 +17,8 @@ Note: This is modified and further developed code based on Spotifys spshell exam
   * [libspotify](http://developer.spotify.com) > 10
 
 1. Optional deps
-  * lmysql
+  * lmysql ( build with -DBUILD_MYSQL=ON)
+
 
 1. Update `spshell.h` with your credentials. A *Spotify premium account is necessary*.
 
