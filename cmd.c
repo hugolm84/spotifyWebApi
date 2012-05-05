@@ -36,7 +36,7 @@ struct {
         const char *notes;
 } commands[] = {
 
-{ "browse",	cmd_browse,"Browse a Spotify URI","/browse/<spotify-uri>", "Exampe: /browse/spotify:uri:to:playlist"},
+{ "browse",	cmd_browse,"Browse a Spotify URI","/browse/<spotify-uri>/<int-limi>", "Exampe: /browse/spotify:uri:to:playlist"},
 { "albums",	cmd_albums,"Get all albums from a Spotify URI","/albums/<spotify-uri>", "Example: /albums/spotify:uri:to:artist"},
 { "search",	cmd_search,"Search","/search/<query-string>", "Example: /search/artist:Madonna track:Like A Prayer"},
 { "help",  	cmd_help,  "help", "/help", "This help message."},
@@ -45,7 +45,11 @@ struct {
 
 };
 
-
+/**
+  put_error
+  returns an json decoded message for errorcodes
+  takes int as errorcode, char* as errorstring
+  */
 json_t *put_error(int code, const char *error){
 
 
@@ -57,7 +61,7 @@ json_t *put_error(int code, const char *error){
         return obj;
 }
 /**
- *
+ * Tokenizer
  */
 static int tokenize(char *buf, char **vec, int vsize)
 {
@@ -83,7 +87,8 @@ static int tokenize(char *buf, char **vec, int vsize)
 
 
 /**
- *
+  Exec unparsed, first, tokenize
+  then dispatch
  */
 void cmd_exec_unparsed(char *l)
 {
@@ -95,7 +100,9 @@ void cmd_exec_unparsed(char *l)
 
 
 /**
- *
+ Dispatch
+ checks args and then trys to match against commands
+
  */
 void cmd_dispatch(int argc, char **argv)
 {
@@ -113,6 +120,7 @@ void cmd_dispatch(int argc, char **argv)
                 cmd_done();
                 return;
         }else if(!strcmp("playlist", argv[0])) {
+        /// @note: this is soon to be deprecated, a backwardcomp for prev version
 
 #ifdef USE_MYSQL
             _mysql_updateStats(g_conn, "init");
@@ -126,7 +134,11 @@ void cmd_dispatch(int argc, char **argv)
     cmd_done();
 }
 
-
+/**
+  Cmd pong
+  Used when you need to ping the service, and see if its up
+  Responds with "pong" if available.
+  */
 int cmd_pong(int arc, char **argv){
 
 
@@ -140,7 +152,8 @@ int cmd_pong(int arc, char **argv){
 
 
 /**
- *
+ Help
+ outputs the cmds, and its args and howtoos
  */
 static int cmd_help(int argc, char **argv)
 {

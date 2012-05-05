@@ -97,6 +97,55 @@ static void log_message(sp_session *session, const char *data)
 }
 
 
+/**
+ * replaces find with replacement,
+ * to be used in the tokenizer later.
+ * @todo: replace this function with a proper uri parser
+ */
+
+char * replace( char const * const original, char const * const pattern, char const * const replacement)
+{
+
+  size_t const replen = strlen(replacement);
+  size_t const patlen = strlen(pattern);
+  size_t const orilen = strlen(original);
+
+  size_t patcnt = 0;
+  const char * oriptr;
+  const char * patloc;
+
+  // find how many times the pattern occurs in the original string
+  for ( oriptr = original; ( patloc = strstr(oriptr, pattern) ); oriptr = patloc + patlen )
+  {
+    patcnt++;
+  }
+
+  {
+    // allocate memory for the new string
+    size_t const retlen = orilen + patcnt * (replen - patlen);
+    char * const returned = (char *) malloc( sizeof(char) * (retlen + 1) );
+
+    if (returned != NULL)
+    {
+      // copy the original string,
+      // replacing all the instances of the pattern
+      char * retptr = returned;
+      for (oriptr = original; ( patloc =  strstr(oriptr, pattern) ); oriptr = patloc + patlen )
+      {
+        size_t const skplen = patloc - oriptr;
+        // copy the section until the occurence of the pattern
+        strncpy(retptr, oriptr, skplen);
+        retptr += skplen;
+        // copy the replacement
+        strncpy(retptr, replacement, replen);
+        retptr += replen;
+      }
+      // copy the rest of the string.
+      strcpy(retptr, oriptr);
+    }
+    return returned;
+  }
+}
 
 /**
  * Callback called when libspotify has new metadata available
@@ -198,7 +247,7 @@ int spshell_init(const char *username, const char *password)
                 fprintf(stderr, "Trying to relogin as user %s\n", reloginname);
 
         } else {
-                sp_session_login(session, username, password, 1);
+                sp_session_login(session, username, password, 1, NULL);
         }
         log_to_stderr = 1;
         g_session = session;

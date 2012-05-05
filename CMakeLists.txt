@@ -27,8 +27,10 @@ set(spotifyWebApi_LINK_LIBRARIES
     ${JANSSON_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
 )
+option(BUILD_MYSQL "Build with MySQL" OFF)
 
-if(LIBMYSQLCLIENT_FOUND)
+if(BUILD_MYSQL AND LIBMYSQLCLIENT_FOUND)
+    MESSAGE("Building with MySQL")
     include_directories(${LIBMYSQLCLIENT_INCLUDE_DIR})
     list(APPEND spotifyWebApi_SOURCES sp_mysql.c)
     list(APPEND spotifyWebApi_LINK_LIBRARIES ${LIBMYSQLCLIENT_LIBRARIES})

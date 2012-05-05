@@ -52,28 +52,24 @@
 /**
  * MYSQL
  */
-/// Comment out USE_MYSQL if you do not wish to use it
-//#define USE_MYSQL
-
+// Is defined, if LibMysql is found in cmake
 #ifdef USE_MYSQL
     #include "sp_mysql.h"
     #include <mysql.h>
+    #define _mHOST ""
+    #define _mUSER ""
+    #define _mPASS ""
+    #define _mDATABASE ""
+    #define _mPORT ""
     extern MYSQL *g_conn;
 #endif
 
-#define _mHOST ""
-#define _mUSER ""
-#define _mPASS ""
-#define _mDATABASE ""
-#define _mPORT ""
-
 /// Socket identifiers
 int newfd, numbytes, DPORT;
-//extern void verbose(char *msg);
 extern sp_session *g_session;
 extern void (*metadata_updated_fn)(void);
 extern int spshell_init(const char *username, const char *password);
 extern void notify_main_thread(sp_session *session);
 extern void start_recv(void);
-
+extern char * replace( char const * const original, char const * const pattern, char const * const replacement);
 #endif // SPSHELL_H__

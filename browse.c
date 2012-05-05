@@ -25,14 +25,18 @@
 #include <time.h>
 
 #ifdef USE_MYSQL
-extern MYSQL* g_conn;
-extern int _mysql_updateStats(MYSQL *, char*);
+    extern MYSQL* g_conn;
+    extern int _mysql_updateStats(MYSQL *, char*);
 #endif
 static sp_track *track_browse;
 static sp_playlist *playlist_browse;
 static sp_playlist_callbacks pl_callbacks;
 
-
+/**
+  imagelink
+  will return an external imageurl for
+  any image within spotify
+  */
 const char *imagelink(sp_image *image){
 
     char url[256];
@@ -43,6 +47,7 @@ const char *imagelink(sp_image *image){
         sp_link_release(l);
         sp_image_release(image);
         char *baseurl = "http://o.scdn.co/image/";
+        // tokenize the coverlink
         char *cover = strtok(url, ":");
               cover = strtok(NULL, ":");
               cover = strtok(NULL, ":");
@@ -59,8 +64,10 @@ const char *imagelink(sp_image *image){
     return NULL;
 }
 
+
+
 /**
- * put the track into a json
+ * put the track into a json array
  *
  * @param sp_track *track
  */
@@ -77,23 +84,23 @@ json_t *get_track(sp_track *track)
 
     if(sp_track_is_loaded(track)){
 
-            if(sp_track_name(track))
-                json_object_set_new_nocheck(metadata, "title", json_string_nocheck(sp_track_name(track)));
-            if(sp_album_name(sp_track_album(track)))
-                json_object_set_new_nocheck(metadata, "album", json_string_nocheck(sp_album_name(sp_track_album(track))));
+        // OK, The track is loaded,
+        // now, append its metadata to the response
+        if(sp_track_name(track))
+            json_object_set_new_nocheck(metadata, "title", json_string_nocheck(sp_track_name(track)));
+        if(sp_album_name(sp_track_album(track)))
+            json_object_set_new_nocheck(metadata, "album", json_string_nocheck(sp_album_name(sp_track_album(track))));
 
-            if(sp_artist_name(sp_track_artist(track, 0)))
-                json_object_set_new_nocheck(metadata, "artist", json_string_nocheck(sp_artist_name(sp_track_artist(track,0))));
+        // Will only append first artist
+        if(sp_artist_name(sp_track_artist(track, 0)))
+            json_object_set_new_nocheck(metadata, "artist", json_string_nocheck(sp_artist_name(sp_track_artist(track,0))));
 
+        json_object_set_new_nocheck(metadata, "trackuri", json_string_nocheck(url));
 
-            json_object_set_new_nocheck(metadata, "trackuri", json_string_nocheck(url));
+        if(sp_track_duration(track))
+            json_object_set_new_nocheck(metadata, "duration", json_integer(sp_track_duration(track)));
 
-
-            if(sp_track_duration(track))
-                json_object_set_new_nocheck(metadata, "duration", json_integer(sp_track_duration(track)));
-
-                json_object_set_new_nocheck(metadata, "popularity", json_integer(sp_track_popularity(track)));
-
+        json_object_set_new_nocheck(metadata, "popularity", json_integer(sp_track_popularity(track)));
 
     }
     return metadata;
@@ -101,7 +108,7 @@ json_t *get_track(sp_track *track)
 
 
 /**
- * put the artist into a json
+ * put the artist into a json array
  *
  * @param sp_artist *artist
  */
@@ -118,19 +125,20 @@ json_t *get_artist(sp_artist *artist)
 
     if(sp_artist_is_loaded(artist)){
 
-            if(sp_artist_name(artist))
-                json_object_set_new_nocheck(metadata, "name", json_string_nocheck(sp_artist_name(artist)));
+        if(sp_artist_name(artist))
+            json_object_set_new_nocheck(metadata, "name", json_string_nocheck(sp_artist_name(artist)));
 
-            json_object_set_new_nocheck(metadata, "artisturi", json_string_nocheck(url));
+        json_object_set_new_nocheck(metadata, "artisturi", json_string_nocheck(url));
 
     }
     return metadata;
 }
 
+
 /**
- * put the track into a json
+ * put the album into a json array
  *
- * @param sp_track *track
+ * @param sp_album *albumk
  */
 
 json_t *get_album(sp_album *album)
@@ -145,19 +153,20 @@ json_t *get_album(sp_album *album)
 
     if(sp_album_is_loaded(album)){
 
-             if(sp_album_name(album))
-                json_object_set_new_nocheck(metadata, "title", json_string_nocheck(sp_album_name(album)));
+         if(sp_album_name(album))
+            json_object_set_new_nocheck(metadata, "title", json_string_nocheck(sp_album_name(album)));
 
-             if(sp_artist_name(sp_album_artist(album)))
-                json_object_set_new_nocheck(metadata, "artist", json_string_nocheck(sp_artist_name(sp_album_artist(album))));
+         if(sp_artist_name(sp_album_artist(album)))
+            json_object_set_new_nocheck(metadata, "artist", json_string_nocheck(sp_artist_name(sp_album_artist(album))));
 
-             json_object_set_new_nocheck(metadata, "albumuri", json_string_nocheck(url));
+         json_object_set_new_nocheck(metadata, "albumuri", json_string_nocheck(url));
 
-             const byte *id;
-             if((id = sp_album_cover(album)))
-                 json_object_set_new_nocheck(metadata, "albumcover", json_string_nocheck(imagelink(sp_image_create(g_session, id))));
+         // Get the albumcover
+         const byte *id;
+         if((id = sp_album_cover(album)))
+             json_object_set_new_nocheck(metadata, "albumcover", json_string_nocheck(imagelink(sp_image_create(g_session, id))));
 
-              json_object_set_new_nocheck(metadata, "year", json_integer(sp_album_year(album)));
+          json_object_set_new_nocheck(metadata, "year", json_integer(sp_album_year(album)));
 
 
     }
@@ -177,42 +186,42 @@ static void browse_album_callback(sp_albumbrowse *browse, void *userdata)
     int i;
     json_t *json = json_object();
 
-        if (sp_albumbrowse_error(browse) == SP_ERROR_OK){
+    if (sp_albumbrowse_error(browse) == SP_ERROR_OK){
 
-            json_t *album = json_object();
-            json_object_set_new(json, "type", json_string_nocheck("album"));
-            json_object_set_new(json, "album", album);
+        json_t *album = json_object();
+        json_object_set_new(json, "type", json_string_nocheck("album"));
+        json_object_set_new(json, "album", album);
 
-            const byte *id;
-            if((id = sp_album_cover(sp_albumbrowse_album(browse))))
-                json_object_set_new_nocheck(album, "albumcover", json_string_nocheck(imagelink(sp_image_create(g_session, id))));
-
-
-
-            json_object_set_new(album, "artist",
-                                json_string_nocheck(sp_artist_name(sp_album_artist(sp_albumbrowse_album(browse)))));
-            json_object_set_new(album, "name",
-                                json_string_nocheck(sp_album_name(sp_albumbrowse_album(browse))));
-
-
-            json_t *result = json_array();
-            json_object_set_new(album, "result", result);
-
-            for (i = 0; i < sp_albumbrowse_num_tracks(browse); ++i)
-                json_array_append_new(result, get_track(sp_albumbrowse_track(browse, i)));
+        const byte *id;
+        if((id = sp_album_cover(sp_albumbrowse_album(browse))))
+            json_object_set_new_nocheck(album, "albumcover", json_string_nocheck(imagelink(sp_image_create(g_session, id))));
 
 
 
+        json_object_set_new(album, "artist",
+                            json_string_nocheck(sp_artist_name(sp_album_artist(sp_albumbrowse_album(browse)))));
+        json_object_set_new(album, "name",
+                            json_string_nocheck(sp_album_name(sp_albumbrowse_album(browse))));
 
-             cmd_sendresponse(json, 200);
 
-        }else cmd_sendresponse(put_error(400,sp_error_message(sp_albumbrowse_error(browse))), 400);
+        json_t *result = json_array();
+        json_object_set_new(album, "tracks", result);
+
+        for (i = 0; i < sp_albumbrowse_num_tracks(browse); ++i)
+            json_array_append_new(result, get_track(sp_albumbrowse_track(browse, i)));
+
+        // All appended, send success and response
+        cmd_sendresponse(json, 200);
+
+    }else cmd_sendresponse(put_error(400,sp_error_message(sp_albumbrowse_error(browse))), 400);
 
 	sp_albumbrowse_release(browse);
-
 	cmd_done();
 }
 
+/**
+  comp, compare
+  */
 static int comp(const void* p1, const void* p2) {
 
   int* arr1 = (int*)p2;
@@ -222,11 +231,13 @@ static int comp(const void* p1, const void* p2) {
   if (diff1) return diff1;
     return arr1[0] - arr2[0];
 }
+
 /**
  * Callback for libspotify
  *
  * @param browse    The browse result object that is now done
  * @param userdata  The opaque pointer given to sp_artistbrowse_create()
+ * @note: here, userdata is int limit for result
  */
 static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
 {
@@ -236,79 +247,79 @@ static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
 
     json_t *json = json_object();
 
-        if (sp_artistbrowse_error(browse) == SP_ERROR_OK){
+    if (sp_artistbrowse_error(browse) == SP_ERROR_OK){
 
-            json_t *artist = json_object();
-            json_object_set_new(json, "type", json_string_nocheck("artist"));
-            json_object_set_new(json, "artist", artist);
+        json_t *artist = json_object();
+        json_object_set_new(json, "type", json_string_nocheck("artist"));
+        json_object_set_new(json, "artist", artist);
 
-            const byte *id;
-            if((id = sp_artistbrowse_portrait(browse, 0)))
-                json_object_set_new_nocheck(artist, "portrait", json_string_nocheck(imagelink(sp_image_create(g_session, id))));
+        const byte *id;
+        if((id = sp_artistbrowse_portrait(browse, 0)))
+            json_object_set_new_nocheck(artist, "portrait", json_string_nocheck(imagelink(sp_image_create(g_session, id))));
 
 
 
-            json_object_set_new(artist, "name",
-                                json_string_nocheck(sp_artist_name(sp_artistbrowse_artist(browse))));
+        json_object_set_new(artist, "name",
+                            json_string_nocheck(sp_artist_name(sp_artistbrowse_artist(browse))));
 
-            json_object_set_new(artist, "totalTracks",
-                                json_integer(sp_artistbrowse_num_tracks(browse)));
-            json_t *result = json_array();
-            json_object_set_new(artist, "result", result);
+        json_object_set_new(artist, "totalTracks",
+                            json_integer(sp_artistbrowse_num_tracks(browse)));
+        json_t *result = json_array();
+        json_object_set_new(artist, "result", result);
 
-            /**
-            * So maybe we dont want all tracks, just the top
-            * or a limit. So lets sort the response for that
-            **/
-            int trackArray[sp_artistbrowse_num_tracks(browse)][2];
-            int k = 0;
-            int j = 0;
+        /**
+        * So maybe we dont want all tracks, just the top
+        * or a limit. So lets sort the response for that
+        **/
+        int trackArray[sp_artistbrowse_num_tracks(browse)][2];
+        int k = 0;
+        int j = 0;
 
-            /**
-            * @note: High number of tracks seems to lead to timeouts or unreasonable response times.
-            * @todo: Do some more checking here, and validate offical tracks only?
-            **/
-            char *excludelist[4] = {"Remix", "Remaster", "Cover", "Ringtone"};
+        /**
+        * @note: High number of tracks seems to lead to timeouts or unreasonable response times.
+        * @todo: Do some more checking here, and validate offical tracks only?
+        **/
+        char *excludelist[4] = {"Remix", "Remaster", "Cover", "Ringtone"};
 
-            for (i = 0; i < sp_artistbrowse_num_tracks(browse)-1; ++i){
-                int skip;
-                if( strlen(sp_artist_name(sp_artistbrowse_artist(browse))) == strlen(sp_artist_name(sp_track_artist(sp_artistbrowse_track(browse,i),0))) ){
-                    if( strcmp(sp_artist_name(sp_artistbrowse_artist(browse)), sp_artist_name(sp_track_artist(sp_artistbrowse_track(browse,i),0))) == 0){
-                        for(j = 0; j < 4; j++)
-                            if(strstr(sp_track_name(sp_artistbrowse_track(browse,i)), excludelist[j]) != NULL)
-                                skip = 1;
+        for (i = 0; i < sp_artistbrowse_num_tracks(browse)-1; ++i){
+            int skip;
+            if( strlen(sp_artist_name(sp_artistbrowse_artist(browse))) == strlen(sp_artist_name(sp_track_artist(sp_artistbrowse_track(browse,i),0))) ){
+                if( strcmp(sp_artist_name(sp_artistbrowse_artist(browse)), sp_artist_name(sp_track_artist(sp_artistbrowse_track(browse,i),0))) == 0){
+                    for(j = 0; j < 4; j++)
+                        if(strstr(sp_track_name(sp_artistbrowse_track(browse,i)), excludelist[j]) != NULL)
+                            skip = 1;
 
-                        if(skip != 1){
-                            trackArray[k][0] = i;
-                            trackArray[k][1] = sp_track_popularity(sp_artistbrowse_track(browse,i));
-                            k++;
-                        }
+                    if(skip != 1){
+                        trackArray[k][0] = i;
+                        trackArray[k][1] = sp_track_popularity(sp_artistbrowse_track(browse,i));
+                        k++;
                     }
                 }
             }
+        }
 
 
-            /**
-             * Sort
-             **/
-            qsort(trackArray, k, 2*sizeof(int), comp);
-            j = 0;
-            for(i = 0; i < k; i++)
-                if(*limit == 0){
-                    json_array_append_new(result, get_track(sp_artistbrowse_track(browse, trackArray[i][0])));
-                    j++;
-                }
-                else if(i < *limit){
-                    json_array_append_new(result, get_track(sp_artistbrowse_track(browse, trackArray[i][0])));
-                    j++;
-                }
+        /**
+         * Sort
+         **/
+        qsort(trackArray, k, 2*sizeof(int), comp);
+        j = 0;
+        for(i = 0; i < k; i++)
+            if(*limit == 0){
+                json_array_append_new(result, get_track(sp_artistbrowse_track(browse, trackArray[i][0])));
+                j++;
+            }
+            else if(i < *limit){
+                json_array_append_new(result, get_track(sp_artistbrowse_track(browse, trackArray[i][0])));
+                j++;
+            }
 
-            json_object_set_new(artist, "resultCount",
-                                json_integer(j));
+        json_object_set_new(artist, "resultCount",
+                            json_integer(j));
 
-            cmd_sendresponse(json, 200);
+        cmd_sendresponse(json, 200);
 
-        }else cmd_sendresponse(put_error(400, sp_error_message(sp_artistbrowse_error(browse))), 400);
+    }else cmd_sendresponse(put_error(400, sp_error_message(sp_artistbrowse_error(browse))), 400);
 
 	sp_artistbrowse_release(browse);
 
@@ -324,42 +335,53 @@ static void browse_artist_callback(sp_artistbrowse *browse, void *userdata)
 static void browse_artistalbums_callback(sp_artistbrowse *browse, void *userdata)
 {
     int i;
+    int *limit = (int*)&userdata;
     json_t *json = json_object();
 
-        if (sp_artistbrowse_error(browse) == SP_ERROR_OK){
+    if (sp_artistbrowse_error(browse) == SP_ERROR_OK){
 
-            json_t *artist = json_object();
-            json_object_set_new(json, "type", json_string_nocheck("albums"));
-            json_object_set_new(json, "albums", artist);
+        json_t *artist = json_object();
+        json_object_set_new(json, "type", json_string_nocheck("albums"));
+        json_object_set_new(json, "albums", artist);
 
-            const byte *id;
-            if((id = sp_artistbrowse_portrait(browse, 0)))
-                json_object_set_new_nocheck(artist, "portrait", json_string_nocheck(imagelink(sp_image_create(g_session, id))));
+        const byte *id;
+        if((id = sp_artistbrowse_portrait(browse, 0)))
+            json_object_set_new_nocheck(artist, "portrait", json_string_nocheck(imagelink(sp_image_create(g_session, id))));
 
-            json_object_set_new(artist, "name",
-                                json_string_nocheck(sp_artist_name(sp_artistbrowse_artist(browse))));
+        json_object_set_new(artist, "name",
+                            json_string_nocheck(sp_artist_name(sp_artistbrowse_artist(browse))));
 
-            json_t *result = json_array();
-            json_object_set_new(artist, "result", result);
+        json_t *result = json_array();
+        json_object_set_new(artist, "result", result);
 
+        // Append limit
+        if(*limit == 0 || *limit >= sp_artistbrowse_num_albums(browse) ){
             for (i = 0; i < sp_artistbrowse_num_albums(browse); ++i)
                 json_array_append_new(result, get_album(sp_artistbrowse_album(browse, i)));
+        }
+        else
+        {
+            for (i = 0; i < *limit; ++i)
+                json_array_append_new(result, get_album(sp_artistbrowse_album(browse, i)));
+        }
+
+        json_object_set_new(json, "resultCount",
+                            json_integer(i));
 
 
+        cmd_sendresponse(json, 200);
 
-            cmd_sendresponse(json, 200);
 
+    }else cmd_sendresponse(put_error(400, sp_error_message(sp_artistbrowse_error(browse))), 400);
 
-        }else cmd_sendresponse(put_error(400, sp_error_message(sp_artistbrowse_error(browse))), 400);
+    sp_artistbrowse_release(browse);
 
-        sp_artistbrowse_release(browse);
-
-        cmd_done();
+    cmd_done();
 }
 
 
 /**
- *
+ Try and browse a track, uses track_browse global
  */
 static void track_browse_try(void)
 {
@@ -404,99 +426,112 @@ const int timeout_length = 3;  // seconds
 time_t start, stop;
 
 /**
- *
+ playlistBrowse
+ ok, this will utilize the timer,
+ playlists really gets loaded like
+    initilized
+    cached
+    loaded
+ we cant wait for it for howlong, it will make
+ the services unavailable for other requests.
+ Usually, its done very fast
  */
 static void playlist_browse_try()
 {
-        int i, tracks;
-        // Stop the timer
-        time(&stop);
-        // Increase the count
-        try_count++;
+    int i, tracks;
+    // Stop the timer
+    time(&stop);
+    // Increase the count
+    try_count++;
 
-        if(start != 0 && difftime(stop, start) > timeout_length) {
-    
-            printf("Try failed\n");
-            char* msg = malloc(100);
-            sprintf(msg, "Process count: %d, Request length: %f seconds", try_count, difftime(stop, start));
-                       
-            sp_playlist_remove_callbacks(playlist_browse, &pl_callbacks, NULL);
-            sp_playlist_release(playlist_browse);
-            
-            cmd_sendresponse(put_error(500, msg), 500);
-            cmd_done();
-            
-            // Reset the count
-            try_count = 0;
-            start = 0;
-            free(msg);
-            return;
-        }
+    if(start != 0 && difftime(stop, start) > timeout_length) {
 
-        metadata_updated_fn = playlist_browse_try;
-    
-        if(!sp_playlist_is_loaded(playlist_browse)) {
-                return;
-        }
-        
-        // OK, successfully loaded playlist, within time!
-
-        // Start Process
-        tracks = sp_playlist_num_tracks(playlist_browse);
-        for(i = 0; i < tracks; i++) {
-                sp_track *t = sp_playlist_track(playlist_browse, i);
-                if (!sp_track_is_loaded(t))
-                        return;
-        }
-
-        json_t *json = json_object();
-        json_t *playlist = json_object();
-        json_object_set_new(json, "type", json_string_nocheck("playlist"));
-        json_object_set_new(json, "playlist", playlist);
-
-        json_t *result = json_array();
-        json_object_set_new(playlist, "result", result);
-
-
-        for(i = 0; i < tracks; i++)
-            json_array_append_new(result, get_track(sp_playlist_track(playlist_browse, i)));
-
-
-        json_object_set_new(playlist, "name",
-                            json_string_nocheck(sp_playlist_name(playlist_browse)));
-
-        sp_user *owner = sp_playlist_owner(playlist_browse);
-        json_object_set_new_nocheck(playlist, "creator",
-                                    json_string_nocheck(sp_user_display_name(owner)));
-        sp_user_release(owner);
-
-        json_object_set_new(playlist, "subscribers",
-                            json_integer(sp_playlist_num_subscribers(playlist_browse)));
+        printf("Try failed\n");
+        char* msg = malloc(100);
+        sprintf(msg, "Process count: %d, Request length: %f seconds", try_count, difftime(stop, start));
 
         sp_playlist_remove_callbacks(playlist_browse, &pl_callbacks, NULL);
         sp_playlist_release(playlist_browse);
-        playlist_browse = NULL;
-        metadata_updated_fn = NULL;
 
-        // Reset the timers
-        start = 0;
-        try_count = 0;
-    
-        cmd_sendresponse(json, 200);
+        cmd_sendresponse(put_error(500, msg), 500);
         cmd_done();
+
+        // Reset the count
+        try_count = 0;
+        start = 0;
+        free(msg);
+        return;
+    }
+
+    metadata_updated_fn = playlist_browse_try;
+
+    if(!sp_playlist_is_loaded(playlist_browse)) {
+            return;
+    }
+
+    // OK, successfully loaded playlist, within time!
+
+    // Start Process
+    tracks = sp_playlist_num_tracks(playlist_browse);
+    for(i = 0; i < tracks; i++) {
+            sp_track *t = sp_playlist_track(playlist_browse, i);
+            if (!sp_track_is_loaded(t))
+                    return;
+    }
+
+    json_t *json = json_object();
+    json_t *playlist = json_object();
+    json_object_set_new(json, "type", json_string_nocheck("playlist"));
+    json_object_set_new(json, "playlist", playlist);
+
+    json_t *result = json_array();
+    json_object_set_new(playlist, "result", result);
+
+
+    for(i = 0; i < tracks; i++)
+        json_array_append_new(result, get_track(sp_playlist_track(playlist_browse, i)));
+
+
+    json_object_set_new(playlist, "name",
+                        json_string_nocheck(sp_playlist_name(playlist_browse)));
+
+    sp_user *owner = sp_playlist_owner(playlist_browse);
+    json_object_set_new_nocheck(playlist, "creator",
+                                json_string_nocheck(sp_user_display_name(owner)));
+    sp_user_release(owner);
+
+    json_object_set_new(playlist, "subscribers",
+                        json_integer(sp_playlist_num_subscribers(playlist_browse)));
+
+    sp_playlist_remove_callbacks(playlist_browse, &pl_callbacks, NULL);
+    sp_playlist_release(playlist_browse);
+    playlist_browse = NULL;
+    metadata_updated_fn = NULL;
+
+    // Reset the timers
+    start = 0;
+    try_count = 0;
+
+    cmd_sendresponse(json, 200);
+    cmd_done();
 
 }
 
 
 
 /**
- *
+ the state changed, usually, loaded or anything was altered
+ we usually wont listen to altered, as we do only lookups.
  */
 static void pl_state_change(sp_playlist *pl, void *userdata)
 {
         playlist_browse_try();
 }
 
+/**
+  Callbacks,
+  we only need state_changed
+  */
 static sp_playlist_callbacks pl_callbacks = {
         NULL,
         NULL,
@@ -505,7 +540,12 @@ static sp_playlist_callbacks pl_callbacks = {
 	pl_state_change,
 };
 
-
+/**
+  browse_playlist
+  start timer,
+  add callbacks,
+  browse the playlist,
+  */
 void browse_playlist(sp_playlist *pl)
 {   
         // To guard against never loading playlists, set a timer    
@@ -517,120 +557,118 @@ void browse_playlist(sp_playlist *pl)
 
 
 /**
- *
+ * Help message for albumlookup usage
  */
 static void albums_usage(void)
 {
-        cmd_sendresponse(put_error(400,"Usage: albums <spotify-uri>"), 400);
+        cmd_sendresponse(put_error(400,"Usage: albums/<spotify-uri>/<int-limit>"), 400);
 }
 
 /**
- *
+ * Help message for browse usage
  */
 static void browse_usage(void)
 {
-        cmd_sendresponse(put_error(400,"Usage: browse <spotify-uri> <int-limit>"), 400);
+        cmd_sendresponse(put_error(400,"Usage: browse/<spotify-uri>/<int-limit>"), 400);
 }
 
 
-
-
 /**
- *
+ album lookup
+ will create a browse, with Only albums and data about them, no tracks.
  */
+
 int cmd_albums(int argc, char **argv)
 {
-        sp_link *link;
+    if (argc < 2) {
+            albums_usage();
+            return -1;
+    }
 
-        if (argc != 2) {
-                albums_usage();
-                return -1;
-        }
+    sp_link *link;
+    link = sp_link_create_from_string(argv[1]);
+    // set limit
+    long limit = (argc == 3) ? atoi(argv[2]) : 0;
 
+    if (!link) {
+            cmd_sendresponse(put_error(400,"Not a spotify link"), 400);
+            return -1;
+    }
 
-        link = sp_link_create_from_string(argv[1]);
-
-        if (!link) {
-                cmd_sendresponse(put_error(400,"Not a spotify link"), 400);
-                return -1;
-        }
-
-        switch(sp_link_type(link)) {
+    switch(sp_link_type(link)) {
         default:
                 cmd_sendresponse(put_error(400,"Can not handle link"), 400);
                 sp_link_release(link);
                 return -1;
 
         case SP_LINKTYPE_ARTIST:
-                sp_artistbrowse_create(g_session, sp_link_as_artist(link), SP_ARTISTBROWSE_NO_TRACKS, browse_artistalbums_callback, NULL);
+                sp_artistbrowse_create(g_session, sp_link_as_artist(link), SP_ARTISTBROWSE_NO_TRACKS, browse_artistalbums_callback, (void*)limit);
                 break;
-        }
+    }
 
-        sp_link_release(link);
-        return 0;
+    sp_link_release(link);
+    return 0;
 }
 
 /**
- *
+ browse
+ will try and browse appropriate type
  */
 int cmd_browse(int argc, char **argv)
 {
-
-	sp_link *link;
-
-        if (argc < 2) {
+    if (argc < 2) {
 		browse_usage();
 		return -1;
 	}
 
-	
+    sp_link *link;
 	link = sp_link_create_from_string(argv[1]);
-
-        long limit = (argc == 3) ? atoi(argv[2]) : 0;
+    // set limit
+    long limit = (argc == 3) ? atoi(argv[2]) : 0;
 
 	if (!link) {
-                cmd_sendresponse(put_error(400,"Not a spotify link"), 400);
+        cmd_sendresponse(put_error(400,"Not a spotify link"), 400);
 		return -1;
 	}
 
 	switch(sp_link_type(link)) {
-	default:
-                cmd_sendresponse(put_error(400,"Can not handle link"), 400);
-		sp_link_release(link);
-		return -1;
+        default:
+            cmd_sendresponse(put_error(400,"Can not handle link"), 400);
+            sp_link_release(link);
+            return -1;
 
         case SP_LINKTYPE_ALBUM:
-#ifdef USE_MYSQL
-                _mysql_updateStats(g_conn, "album");
-#endif
-		sp_albumbrowse_create(g_session, sp_link_as_album(link), browse_album_callback, NULL);
-		break;
+        #ifdef USE_MYSQL
+            _mysql_updateStats(g_conn, "album");
+        #endif
+            sp_albumbrowse_create(g_session, sp_link_as_album(link), browse_album_callback, NULL);
+            break;
 
-	case SP_LINKTYPE_ARTIST:
-#ifdef USE_MYSQL
-                _mysql_updateStats(g_conn, "artist");
-#endif
-                sp_artistbrowse_create(g_session, sp_link_as_artist(link), SP_ARTISTBROWSE_FULL, browse_artist_callback, (void*)limit);
-                break;
+        case SP_LINKTYPE_ARTIST:
+        #ifdef USE_MYSQL
+            _mysql_updateStats(g_conn, "artist");
+        #endif
+            sp_artistbrowse_create(g_session, sp_link_as_artist(link), SP_ARTISTBROWSE_FULL, browse_artist_callback, (void*)limit);
+            break;
 
-	case SP_LINKTYPE_LOCALTRACK:
-	case SP_LINKTYPE_TRACK:
-#ifdef USE_MYSQL
-                _mysql_updateStats(g_conn, "track");
-#endif
-                track_browse = sp_link_as_track(link);
-                metadata_updated_fn = track_browse_try;
-                sp_track_add_ref(track_browse);
-                track_browse_try();
-		break;
+        case SP_LINKTYPE_LOCALTRACK:
+        case SP_LINKTYPE_TRACK:
+        #ifdef USE_MYSQL
+            _mysql_updateStats(g_conn, "track");
+        #endif
+            track_browse = sp_link_as_track(link);
+            metadata_updated_fn = track_browse_try;
+            sp_track_add_ref(track_browse);
+            track_browse_try();
+            break;
 
-	case SP_LINKTYPE_PLAYLIST:
-#ifdef USE_MYSQL
-                _mysql_updateStats(g_conn, "playlist");
-#endif
-		browse_playlist(sp_playlist_create(g_session, link));
-		break;
-	}
+        case SP_LINKTYPE_PLAYLIST:
+        #ifdef USE_MYSQL
+            _mysql_updateStats(g_conn, "playlist");
+        #endif
+            browse_playlist(sp_playlist_create(g_session, link));
+            break;
+    }
 
 	sp_link_release(link);
 	return 0;

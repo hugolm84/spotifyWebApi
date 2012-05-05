@@ -26,6 +26,8 @@
 #include <signal.h>	
 #include "spshell.h"
 #include <locale.h>
+// Replace
+extern char* replace(const char *const original, const char *const pattern, const char *const replacement);
 
 /* Provide clock_gettime() emulation using gettimeofday on OSX */
 #ifdef __APPLE__
@@ -91,55 +93,6 @@ void sigchld_handler(int s)
     exit(s);
 }
 
-/**
- * replaces find with replacement,
- * to be used in the tokenizer later.
- * @todo: replace this function with a proper uri parser
- */
-
-char * replace( char const * const original, char const * const pattern, char const * const replacement)
-{
-
-  size_t const replen = strlen(replacement);
-  size_t const patlen = strlen(pattern);
-  size_t const orilen = strlen(original);
-
-  size_t patcnt = 0;
-  const char * oriptr;
-  const char * patloc;
-
-  // find how many times the pattern occurs in the original string
-  for ( oriptr = original; ( patloc = strstr(oriptr, pattern) ); oriptr = patloc + patlen )
-  {
-    patcnt++;
-  }
-
-  {
-    // allocate memory for the new string
-    size_t const retlen = orilen + patcnt * (replen - patlen);
-    char * const returned = (char *) malloc( sizeof(char) * (retlen + 1) );
-
-    if (returned != NULL)
-    {
-      // copy the original string,
-      // replacing all the instances of the pattern
-      char * retptr = returned;
-      for (oriptr = original; ( patloc =  strstr(oriptr, pattern) ); oriptr = patloc + patlen )
-      {
-        size_t const skplen = patloc - oriptr;
-        // copy the section until the occurence of the pattern
-        strncpy(retptr, oriptr, skplen);
-        retptr += skplen;
-        // copy the replacement
-        strncpy(retptr, replacement, replen);
-        retptr += replen;
-      }
-      // copy the rest of the string.
-      strcpy(retptr, oriptr);
-    }
-    return returned;
-  }
-}
 
 /* Converts a hex character to its integer value */
 char from_hex(char ch) {
