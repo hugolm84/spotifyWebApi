@@ -130,7 +130,7 @@ int cmd_search(int argc, char **argv)
         // Keeping struct of searchdata, to pass on
         // remember to free it
         struct searchData *data = malloc(sizeof(struct searchData));
-        data->limit = NULL;
+        data->limit = 0;
         data->type = NULL;
         data->query[0] = 0;
         int limitIsZero = 0;
@@ -149,7 +149,7 @@ int cmd_search(int argc, char **argv)
          data->limit = atoi(argv[argc-1]);
 
         // Concatenate the query tokens, leave out the type and limit
-        for(i = ( data->type != NULL ? 2 : 1); i < argc-( data->limit != NULL ? 1 : 0+limitIsZero ); i++)
+        for(i = ( data->type != NULL ? 2 : 1); i < argc-( data->limit > 0 ? 1 : 0+limitIsZero ); i++)
         {
             /// @note: artist:/track:/album: prefixing wont work on playlists
             if( data->type != NULL && !strcmp( data->type, "playlist"))
@@ -168,7 +168,7 @@ int cmd_search(int argc, char **argv)
             data->type = "";
 
         // Null or 0 limit is 100 as default
-        if( data->limit == NULL || data->limit < 0)
+        if( data->limit < 0)
             data->limit = 100;
 
         //printf("Query type:%s, limit:%d, query:%s\n", data->type, data->limit, data->query);
